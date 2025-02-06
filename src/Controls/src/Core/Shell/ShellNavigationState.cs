@@ -62,10 +62,6 @@ namespace Microsoft.Maui.Controls
 		public static implicit operator ShellNavigationState(Uri uri) => new ShellNavigationState(uri);
 		public static implicit operator ShellNavigationState(string value) => new ShellNavigationState(value);
 
-#if IOS || MACCATALYST
-        static List<string> prevLocation;
-#endif
-
 		static Uri TrimDownImplicitAndDefaultPaths(Uri uri)
 		{
 			uri = ShellUriHandler.FormatUri(uri, null);
@@ -97,49 +93,13 @@ namespace Microsoft.Maui.Controls
 			// Always include pushed pages
 			for (int i = 5; i < parts.Length; i++)
 			{
-#if IOS || MACCATALYST
-				if (prevLocation is not null && prevLocation.Count > 1 && prevLocation[0] == "" && prevLocation[1] == "")
-				{
-					prevLocation.RemoveAt(1);
-					prevLocation.RemoveAt(0);
-				}
-#endif
-
 				toKeep.Add(parts[i]);
-
-#if IOS || MACCATALYST
-				if (prevLocation is not null && AreLocationsEqual(toKeep, prevLocation))
-				{
-					toKeep.Clear();
-					toKeep.Add(prevLocation[0]);
-				}
-#endif
 			}
-
-#if IOS || MACCATALYST
-			prevLocation = toKeep;
-#endif
 
 			toKeep.Insert(0, "");
 			toKeep.Insert(0, "");
 			return new Uri(string.Join(Routing.PathSeparator, toKeep), UriKind.Relative);
 		}
-
-#if IOS || MACCATALYST
-		static bool AreLocationsEqual(List<string> currentLocations, List<string> prevLocations)
-		{
-			if (currentLocations.Count != prevLocations.Count)
-			{
-				return false;
-			}
-			for (int i = 0; i < prevLocations.Count; i++)
-			{
-				if (currentLocations[i] != prevLocations[i])
-					return false;
-			}
-			return true;
-		}
-#endif
 
 		private sealed class ShellNavigationStateTypeConverter : TypeConverter
 		{
