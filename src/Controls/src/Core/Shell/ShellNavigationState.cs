@@ -96,10 +96,53 @@ namespace Microsoft.Maui.Controls
 				toKeep.Add(parts[i]);
 			}
 
+#if IOS || MACCATALYST
+			var navigationStack = Shell.Current?.Navigation?.NavigationStack;
+
+			if (navigationStack is not null && navigationStack.Count > 1)
+			{
+				var prevPageUri = Shell.Current?.CurrentState?.Location?.OriginalString;
+
+				if (!string.IsNullOrEmpty(prevPageUri))
+				{
+					var prevPaths = new List<string>(prevPageUri.Split('/'));
+
+					if (ArePathsEqual(toKeep, prevPaths))
+					{
+						toKeep.Clear();
+						toKeep.Add(prevPaths[0]);
+					}
+				}
+			}
+#endif
+
 			toKeep.Insert(0, "");
 			toKeep.Insert(0, "");
 			return new Uri(string.Join(Routing.PathSeparator, toKeep), UriKind.Relative);
 		}
+
+#if IOS || MACCATALYST
+		static bool ArePathsEqual(List<string> currentPath, List<string> prevPath)
+		{
+			if (prevPath.Count > 1 && string.IsNullOrEmpty(prevPath[0]) && string.IsNullOrEmpty(prevPath[1]))
+			{
+				prevPath.RemoveRange(0,2);
+			}
+
+			if (currentPath.Count != prevPath.Count)
+			{
+				return false;
+			}
+
+			for (int i = 0; i < prevPath.Count; i++)
+			{
+				if (currentPath[i] != prevPath[i])
+					return false;
+			}
+
+			return true;
+		}
+#endif
 
 		private sealed class ShellNavigationStateTypeConverter : TypeConverter
 		{
