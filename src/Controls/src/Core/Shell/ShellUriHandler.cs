@@ -703,56 +703,7 @@ namespace Microsoft.Maui.Controls
 
 				// Nothing was trimmed on last pass
 				if (bestMatches.Count == betterMatches.Count)
-				{
-					bool isAllPathEqual = true;
-					if (bestMatches.Count > 0)
-					{
-						for (int i = 0; i < bestMatches.Count; i++)
-						{
-							bool isPresented = false;
-							for (int j = 0; j < betterMatches.Count; j++)
-							{
-								//Check if the path is same.
-								if (string.Equals(bestMatches[i].PathFull, betterMatches[j].PathFull, StringComparison.Ordinal))
-								{
-									isPresented = true;
-									break;
-								}
-							}
-							if (!isPresented)
-							{
-								isAllPathEqual = false;
-								break;
-							}
-						}
-					}
-
-					//If paths same, then remove the duplicate.
-					if (isAllPathEqual)
-					{
-						var finalRoutes = new List<RouteRequestBuilder>();
-						for (int i = 0; i < bestMatches.Count; i++)
-						{
-							bool duplicate = false;
-							for (int j = 0; j < finalRoutes.Count; j++)
-							{
-								if (string.Equals(bestMatches[i].PathFull, finalRoutes[j].PathFull, StringComparison.Ordinal))
-								{
-									duplicate = true;
-									break;
-								}
-							}
-							//Update the routes if not repeated.
-							if (!duplicate)
-							{
-								finalRoutes.Add(bestMatches[i]);
-							}
-						}
-						return finalRoutes;
-					}
-
 					return betterMatches;
-				}
 
 				bestMatches = betterMatches;
 			}
