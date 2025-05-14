@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.Threading.Tasks;
 using Android.Content;
 using Android.Content.Res;
 using Android.Graphics;
@@ -220,8 +221,15 @@ namespace Microsoft.Maui.Controls.Handlers
 			RemoveTabs();
 		}
 
-		void OnTabbedPageAppearing(object sender, EventArgs e)
+		async void OnTabbedPageAppearing(object sender, EventArgs e)
 		{
+			var activity = _context?.Context as Android.App.Activity; // Get the current Android Activity from the MAUI context.
+
+			//Wait until the window has focus 
+			while (!(activity?.HasWindowFocus ?? false))
+			{
+				await Task.Delay(50);
+			}
 			SetTabLayout();
 		}
 
