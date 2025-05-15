@@ -43,6 +43,10 @@ namespace Microsoft.Maui.Controls.Handlers.Compatibility
 		{
 			this.DisableiOS18ToolbarTabs();
 			_viewHandlerWrapper = new ViewHandlerDelegator<TabbedPage>(Mapper, CommandMapper, this);
+			if (MoreNavigationController is not null)
+			{
+				MoreNavigationController.Delegate = new MoreTabDelegate(this);
+			}
 		}
 
 		public override UIViewController SelectedViewController
@@ -129,6 +133,31 @@ namespace Microsoft.Maui.Controls.Handlers.Compatibility
 
 			if (Element is IView view)
 				view.Arrange(View.Bounds.ToRectangle());
+		}
+
+		internal void UpdateCurrentPageForMoreTab()
+		{
+			bool isInMoreTab = false;
+			// Check if the selected tab is in the More tab
+			if (MoreNavigationController is not null && MoreNavigationController.ViewControllers is not null)
+			{
+				foreach (var viewController in MoreNavigationController.ViewControllers)
+				{
+					if (viewController == SelectedViewController)
+					{
+						isInMoreTab = true;
+						break;
+					}
+				}
+			}
+
+			// Only update if CurrentPage's controller is not the selected one, and if in More tab
+			var currentPageController = Tabbed?.CurrentPage is not null ? GetViewController(Tabbed.CurrentPage) : null;
+			if ((isInMoreTab || SelectedViewController.Title.Equals("More", StringComparison.Ordinal)) &&
+				(currentPageController != SelectedViewController))
+			{
+				UpdateCurrentPage();
+			}
 		}
 
 		protected override void Dispose(bool disposing)
@@ -465,6 +494,12 @@ namespace Microsoft.Maui.Controls.Handlers.Compatibility
 
 		void UpdateCurrentPage()
 		{
+			if (SelectedViewController.Title.Equals("More", StringComparison.Ordinal))
+			{
+				Tabbed.CurrentPage = null;
+				return;
+			}
+
 			if (Tabbed is TabbedPage tabbed)
 			{
 				var count = tabbed.InternalChildren.Count;
@@ -601,5 +636,23 @@ namespace Microsoft.Maui.Controls.Handlers.Compatibility
 			_viewHandlerWrapper.DisconnectHandler();
 		}
 		#endregion
+	}
+
+	class MoreTabDelegate : UINavigationControllerDelegate
+	{
+		readonly WeakReference<TabbedRenderer> _renderer;
+
+		public MoreTabDelegate(TabbedRenderer renderer)
+		{
+			_renderer = new WeakReference<TabbedRenderer>(renderer);
+		}
+
+		public override void DidShowViewController(UINavigationController navigationController, UIViewController viewController, bool animated)
+		{
+			if (_renderer is not null && _renderer.TryGetTarget(out var renderer))
+			{
+				renderer.UpdateCurrentPageForMoreTab();
+			}
+		}
 	}
 }
