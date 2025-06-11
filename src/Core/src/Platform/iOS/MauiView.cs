@@ -205,7 +205,7 @@ namespace Microsoft.Maui.Platform
 		public override void MovedToWindow()
 		{
 			base.MovedToWindow();
-			// Only invoke when added to a window, not when removed
+			// Only invoked when the view becomes visible, not when it is no longer visible
 			if (Window is not null)
 			{
 				_movedToWindow?.Invoke(this, EventArgs.Empty);
