@@ -284,6 +284,16 @@ namespace Microsoft.Maui.Controls
 				if (current.Items.Contains(shellContent))
 					current.CurrentItem = shellContent;
 
+				// Notify parent Shell about potential TabBar visibility changes when returning existing ShellSection
+				// This ensures that platform handlers are updated even when the same object is returned
+				if (current.Parent is Shell shell)
+				{
+					shell.Dispatcher.Dispatch(() =>
+					{
+						current.Handler?.UpdateValue(Shell.TabBarIsVisibleProperty.PropertyName);
+					});
+				}
+
 				return current;
 			}
 
