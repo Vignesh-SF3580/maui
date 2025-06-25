@@ -750,13 +750,7 @@ namespace Microsoft.Maui.Platform
 			return disposable;
 		}
 
-		internal static IDisposable OnLoaded(this UIView uiView, IElement? element, Action action)
-		{
-			// For now, just delegate to the existing method since OnLoaded doesn't need the shell-specific logic
-			return uiView.OnLoaded(action);
-		}
-
-		internal static IDisposable OnUnloaded(this UIView uiView, IElement? element, Action action)
+		internal static IDisposable OnUnloaded(this UIView uiView, Action action)
 		{
 			if (!uiView.IsLoaded())
 			{
@@ -806,19 +800,24 @@ namespace Microsoft.Maui.Platform
 			{
 				if (!uiView.IsLoaded() && disposable != null)
 				{
-					disposable.Dispose();
-					disposable = null;
-					action();
+					// Add a delay to allow Shell tab animations to complete
+					// This prevents false Unloaded events during tab switching
+					Foundation.NSTimer.CreateScheduledTimer(0.1, (timer) =>
+					{
+						// Double-check after the delay in case the view was re-added to window
+						if (!uiView.IsLoaded() && disposable != null)
+						{
+							disposable.Dispose();
+							disposable = null;
+							action();
+						}
+						timer.Invalidate();
+					});
 				}
 			}
 			;
 
 			return disposable;
-		}
-
-		internal static IDisposable OnUnloaded(this UIView uiView, Action action)
-		{
-			return uiView.OnUnloaded(null, action);
 		}
 
 		internal static void UpdateLayerBorder(this CoreAnimation.CALayer layer, IButtonStroke? stroke)
