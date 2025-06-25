@@ -1365,6 +1365,44 @@ namespace Microsoft.Maui.Controls.Core.UnitTests
 		}
 
 		[Fact]
+		public void TabBarIsVisibleWithShellCurrentItemSetToShellContent()
+		{
+			var shell = new Shell();
+			var page1 = new ContentPage();
+			var page2 = new ContentPage();
+			
+			var shellContent1 = new ShellContent { Content = page1, Title = "One" };
+			var shellContent2 = new ShellContent { Content = page2, Title = "Two" };
+			
+			var tab1 = new Tab { Title = "One" };
+			tab1.Items.Add(shellContent1);
+			
+			var tab2 = new Tab { Title = "Two" };
+			tab2.Items.Add(shellContent2);
+			
+			var tabBar = new TabBar();
+			tabBar.Items.Add(tab1);
+			tabBar.Items.Add(tab2);
+
+			shell.Items.Add(tabBar);
+
+			// Verify initial state
+			Assert.Equal(2, ((IShellItemController)shell.CurrentItem).GetItems().Count);
+			Assert.True((shell.CurrentItem as IShellItemController).ShowTabs);
+
+			// This should maintain tab bar visibility - the problematic case from the issue
+			shell.CurrentItem = shellContent2;
+
+			// The tab bar should still be visible when CurrentItem is set to a ShellContent
+			// This test ensures the fix works correctly
+			Assert.True((shell.CurrentItem as IShellItemController).ShowTabs);
+			Assert.Equal(2, ((IShellItemController)shell.CurrentItem).GetItems().Count);
+			
+			// Verify that the internal state was updated correctly
+			Assert.Equal("Two", shell.CurrentItem.CurrentItem?.CurrentItem?.Title);
+		}
+
+		[Fact]
 		public void SendStructureChangedFiresWhenAddingItems()
 		{
 			Shell shell = new Shell();

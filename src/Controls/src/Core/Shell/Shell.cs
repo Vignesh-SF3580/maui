@@ -1665,6 +1665,10 @@ namespace Microsoft.Maui.Controls
 
 			if (shell.CurrentItem?.CurrentItem != null)
 				shell.ShellController.AppearanceChanged(shell.CurrentItem.CurrentItem, false);
+
+			// Ensure TabBarIsVisible is updated when CurrentItem changes, even if it's the same ShellItem object
+			// This is needed when Shell.CurrentItem is set to a ShellContent that converts to an existing ShellItem
+			shell.CurrentItem?.Handler?.UpdateValue(Shell.TabBarIsVisibleProperty.PropertyName);
 		}
 
 		static void OnCurrentItemChanging(BindableObject bindable, object oldValue, object newValue)
