@@ -210,7 +210,13 @@ namespace Microsoft.Maui.Controls
 				var current = (ShellItem)shellSection.Parent;
 
 				if (current.Items.Contains(shellSection))
+				{
 					current.CurrentItem = shellSection;
+					
+					// Ensure tab bar visibility is updated when returning existing ShellItem with new CurrentItem
+					// This handles the case where Shell.CurrentItem is set to a ShellContent that converts to an existing TabBar
+					current.Handler?.UpdateValue(Shell.TabBarIsVisibleProperty.PropertyName);
+				}
 
 				return current;
 			}

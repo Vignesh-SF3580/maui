@@ -282,7 +282,12 @@ namespace Microsoft.Maui.Controls
 				var current = (ShellSection)shellContent.Parent;
 
 				if (current.Items.Contains(shellContent))
+				{
 					current.CurrentItem = shellContent;
+					
+					// Ensure section visibility is updated when returning existing ShellSection with new CurrentItem
+					current.Handler?.UpdateValue(Shell.TabBarIsVisibleProperty.PropertyName);
+				}
 
 				return current;
 			}
