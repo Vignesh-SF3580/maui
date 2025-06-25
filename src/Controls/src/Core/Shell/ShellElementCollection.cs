@@ -187,7 +187,7 @@ namespace Microsoft.Maui.Controls
 				{
 					var item = Inner[i];
 
-					if (!IsBaseShellItemVisible(element))
+					if (!IsBaseShellItemVisible(item))
 						continue;
 
 					if (item == element)

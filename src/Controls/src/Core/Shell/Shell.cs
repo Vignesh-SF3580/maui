@@ -1665,21 +1665,6 @@ namespace Microsoft.Maui.Controls
 
 			if (shell.CurrentItem?.CurrentItem != null)
 				shell.ShellController.AppearanceChanged(shell.CurrentItem.CurrentItem, false);
-
-			// Ensure TabBarIsVisible is updated when CurrentItem changes, even if it's the same ShellItem object
-			// This is needed when Shell.CurrentItem is set to a ShellContent that converts to an existing ShellItem
-			// The issue is timing: during the conversion process, ShowTabs might be evaluated before the structure is consistent
-			if (shell.CurrentItem != null)
-			{
-				// Force a structure update to ensure all tabs are properly recognized
-				shell.CurrentItem.SendStructureChanged();
-				
-				// Then update the handler after the structure is consistent
-				shell.Dispatcher.Dispatch(() =>
-				{
-					shell.CurrentItem?.Handler?.UpdateValue(Shell.TabBarIsVisibleProperty.PropertyName);
-				});
-			}
 		}
 
 		static void OnCurrentItemChanging(BindableObject bindable, object oldValue, object newValue)
