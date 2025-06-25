@@ -142,9 +142,12 @@ namespace Microsoft.Maui.Platform
 			{
 #if IOS
 				if (platformViewHandler.ContainerView is IUIViewLifeCycleEvents)
-					return platformViewHandler.ContainerView.OnUnloaded(action);
-#endif
+					return platformViewHandler.ContainerView.OnUnloaded(element, action);
+				else
+					return platformViewHandler.PlatformView.OnUnloaded(element, action);
+#else
 				return platformViewHandler.PlatformView.OnUnloaded(action);
+#endif
 			}
 
 			throw new InvalidOperationException("Handler is not set on element");
@@ -161,9 +164,12 @@ namespace Microsoft.Maui.Platform
 			{
 #if IOS
 				if (platformViewHandler.ContainerView is IUIViewLifeCycleEvents)
-					return platformViewHandler.ContainerView.OnLoaded(action);
-#endif
+					return platformViewHandler.ContainerView.OnLoaded(element, action);
+				else
+					return platformViewHandler.PlatformView.OnLoaded(element, action);
+#else
 				return platformViewHandler.PlatformView.OnLoaded(action);
+#endif
 			}
 
 			throw new InvalidOperationException("Handler is not set on element");
