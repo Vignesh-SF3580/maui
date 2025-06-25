@@ -806,14 +806,6 @@ namespace Microsoft.Maui.Platform
 			{
 				if (!uiView.IsLoaded() && disposable != null)
 				{
-					// Additional check for Shell tab scenarios to prevent false Unloaded events
-					if (IsShellTabScenario(element))
-					{
-						// In Shell tab switching, pages are temporarily removed from window during transitions
-						// but they're not actually being unloaded, so don't fire the Unloaded event
-						return;
-					}
-
 					disposable.Dispose();
 					disposable = null;
 					action();
@@ -827,74 +819,6 @@ namespace Microsoft.Maui.Platform
 		internal static IDisposable OnUnloaded(this UIView uiView, Action action)
 		{
 			return uiView.OnUnloaded(null, action);
-		}
-
-		static bool IsShellTabScenario(IElement? element)
-		{
-			// Check if this is a Page in a Shell tab context
-			if (element is not Microsoft.Maui.Controls.Page page)
-				return false;
-
-			// Check if the page is part of an active Shell
-			if (Microsoft.Maui.Controls.Shell.Current is not Microsoft.Maui.Controls.Shell shell)
-				return false;
-
-			// If the page is still in the navigation stack, it's likely a tab switch scenario
-			// rather than actual page removal
-			if (page.Navigation?.NavigationStack?.Contains(page) == true)
-				return true;
-
-			// Additional check: if the page is a root page of a Shell content that's still active
-			var shellContent = FindParentShellContent(page);
-			if (shellContent != null)
-			{
-				// If the ShellContent is still part of the active Shell structure, 
-				// this is likely a tab switch
-				return IsShellContentActive(shellContent, shell);
-			}
-
-			return false;
-		}
-
-		static Microsoft.Maui.Controls.ShellContent? FindParentShellContent(Microsoft.Maui.Controls.Page page)
-		{
-			var parent = page.Parent;
-			while (parent != null)
-			{
-				if (parent is Microsoft.Maui.Controls.ShellContent shellContent)
-					return shellContent;
-				parent = parent.Parent;
-			}
-			return null;
-		}
-
-		static bool IsShellContentActive(Microsoft.Maui.Controls.ShellContent shellContent, Microsoft.Maui.Controls.Shell shell)
-		{
-			// Check if the ShellContent is part of the current Shell structure
-			foreach (var item in shell.Items)
-			{
-				if (item is Microsoft.Maui.Controls.TabBar tabBar)
-				{
-					foreach (var tab in tabBar.Items)
-					{
-						if (tab == shellContent)
-							return true;
-					}
-				}
-				else if (item is Microsoft.Maui.Controls.ShellSection section)
-				{
-					foreach (var content in section.Items)
-					{
-						if (content == shellContent)
-							return true;
-					}
-				}
-				else if (item == shellContent)
-				{
-					return true;
-				}
-			}
-			return false;
 		}
 
 		internal static void UpdateLayerBorder(this CoreAnimation.CALayer layer, IButtonStroke? stroke)
