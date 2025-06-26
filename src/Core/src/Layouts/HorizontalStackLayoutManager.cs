@@ -46,7 +46,6 @@ namespace Microsoft.Maui.Layouts
 		{
 			var padding = Stack.Padding;
 			double spacing = Stack.Spacing;
-			var childCount = Stack.Count;
 
 			double top = padding.Top + bounds.Top;
 
@@ -54,6 +53,7 @@ namespace Microsoft.Maui.Layouts
 
 			// Figure out where we're starting from 
 			double xPosition = padding.Left + bounds.Left;
+			int visibleChildCount = 0;
 
 			for (int n = 0; n < Stack.Count; n++)
 			{
@@ -64,16 +64,19 @@ namespace Microsoft.Maui.Layouts
 					continue;
 				}
 
-				xPosition += ArrangeChild(child, height, top, xPosition);
-
-				if (n < childCount - 1)
+				// Add spacing before child (except for first visible child)
+				if (visibleChildCount > 0)
 				{
-					// If we have more than one child and we're not on the last one, add spacing
 					xPosition += spacing;
 				}
+
+				xPosition += ArrangeChild(child, height, top, xPosition);
+				visibleChildCount++;
 			}
 
-			var actual = new Size(xPosition, height);
+			// Calculate the actual used width (subtract the starting position to get actual content width)
+			var actualWidth = xPosition - bounds.Left;
+			var actual = new Size(actualWidth, height);
 
 			return actual.AdjustForFill(bounds, Stack);
 		}
