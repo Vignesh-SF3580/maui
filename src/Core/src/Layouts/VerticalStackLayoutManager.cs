@@ -50,6 +50,7 @@ namespace Microsoft.Maui.Layouts
 			double stackHeight = padding.Top + bounds.Y;
 			double left = padding.Left + bounds.X;
 			double width = bounds.Width - padding.HorizontalThickness;
+			int visibleChildCount = 0;
 
 			for (int n = 0; n < Stack.Count; n++)
 			{
@@ -60,12 +61,21 @@ namespace Microsoft.Maui.Layouts
 					continue;
 				}
 
+				// Add spacing before child (except for first visible child)
+				if (visibleChildCount > 0)
+				{
+					stackHeight += Stack.Spacing;
+				}
+
 				var destination = new Rect(left, stackHeight, width, child.DesiredSize.Height);
 				child.Arrange(destination);
-				stackHeight += destination.Height + Stack.Spacing;
+				stackHeight += destination.Height;
+				visibleChildCount++;
 			}
 
-			var actual = new Size(width, stackHeight);
+			// Calculate the actual used height (from bounds top edge to content plus bottom padding)
+			var actualHeight = stackHeight - bounds.Y + padding.Bottom;
+			var actual = new Size(width, actualHeight);
 
 			return actual.AdjustForFill(bounds, Stack);
 		}
