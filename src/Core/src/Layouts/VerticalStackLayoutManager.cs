@@ -73,8 +73,8 @@ namespace Microsoft.Maui.Layouts
 				visibleChildCount++;
 			}
 
-			// Calculate the actual used height (subtract the starting position to get actual content height)
-			var actualHeight = stackHeight - bounds.Y;
+			// Calculate the actual used height (from bounds top edge to content plus bottom padding)
+			var actualHeight = stackHeight - bounds.Y + padding.Bottom;
 			var actual = new Size(width, actualHeight);
 
 			return actual.AdjustForFill(bounds, Stack);

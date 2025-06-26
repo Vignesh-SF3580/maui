@@ -74,8 +74,8 @@ namespace Microsoft.Maui.Layouts
 				visibleChildCount++;
 			}
 
-			// Calculate the actual used width (subtract the starting position to get actual content width)
-			var actualWidth = xPosition - bounds.Left;
+			// Calculate the actual used width (from bounds left edge to content plus right padding)
+			var actualWidth = xPosition - bounds.Left + padding.Right;
 			var actual = new Size(actualWidth, height);
 
 			return actual.AdjustForFill(bounds, Stack);
