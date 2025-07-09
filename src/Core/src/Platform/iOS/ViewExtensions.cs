@@ -25,12 +25,26 @@ namespace Microsoft.Maui.Platform
 
 		public static void Focus(this UIView platformView, FocusRequest request)
 		{
-			request.TrySetResult(platformView.BecomeFirstResponder());
+			bool result = platformView.BecomeFirstResponder();
+			request.TrySetResult(result);
+			
+			// Notify ViewHandler about focus change
+			if (result)
+			{
+				Handlers.ViewHandler.OnViewBecameFirstResponder(platformView);
+			}
 		}
 
 		public static void Unfocus(this UIView platformView, IView view)
 		{
+			bool wasFirstResponder = platformView.IsFirstResponder;
 			platformView.ResignFirstResponder();
+			
+			// Notify ViewHandler about focus change
+			if (wasFirstResponder)
+			{
+				Handlers.ViewHandler.OnViewResignedFirstResponder(platformView);
+			}
 		}
 
 		public static void UpdateVisibility(this UIView platformView, IView view) =>
