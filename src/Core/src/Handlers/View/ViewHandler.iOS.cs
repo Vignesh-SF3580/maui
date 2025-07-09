@@ -14,6 +14,23 @@ namespace Microsoft.Maui.Handlers
 	{
 		readonly static ConditionalWeakTable<PlatformView, ViewHandler> FocusHandlerMapping = new();
 		readonly static ConditionalWeakTable<PlatformView, UITapGestureRecognizer> FocusGestureMapping = new();
+		
+		// Global focus manager to track currently focused view
+		static WeakReference<IView>? _currentlyFocusedView;
+
+		// Centralized focus management method
+		internal static void SetViewFocused(IView view)
+		{
+			// First, unfocus the currently focused view (if any)
+			if (_currentlyFocusedView?.TryGetTarget(out var currentlyFocused) == true && currentlyFocused != view)
+			{
+				currentlyFocused.IsFocused = false;
+			}
+			
+			// Then focus the new view
+			view.IsFocused = true;
+			_currentlyFocusedView = new WeakReference<IView>(view);
+		}
 
 		[System.Runtime.Versioning.SupportedOSPlatform("ios13.0")]
 		public static void MapContextFlyout(IViewHandler handler, IView view)
@@ -106,9 +123,9 @@ namespace Microsoft.Maui.Handlers
 			if (tapGesture.View is PlatformView platformView && 
 				FocusHandlerMapping.TryGetValue(platformView, out ViewHandler? handler))
 			{
-				// Handle focus event similar to Editor/Entry pattern
+				// Handle focus event following Editor/Entry pattern with proper focus management
 				if (handler.VirtualView is IView view)
-					view.IsFocused = true;
+					SetViewFocused(view);
 			}
 		}
 
