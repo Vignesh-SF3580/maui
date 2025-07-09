@@ -27,10 +27,38 @@ public class Issue9 : TestContentPage
 		AutomationId = "LayoutUnfocusedCountLabel"
 	};
 
+	Label _checkBoxFocusedCountLabel = new Label
+	{
+		Text = "CheckBox Focused: 0",
+		AutomationId = "CheckBoxFocusedCountLabel"
+	};
+
+	Label _checkBoxUnfocusedCountLabel = new Label
+	{
+		Text = "CheckBox Unfocused: 0",
+		AutomationId = "CheckBoxUnfocusedCountLabel"
+	};
+
+	Label _radioButtonFocusedCountLabel = new Label
+	{
+		Text = "RadioButton Focused: 0",
+		AutomationId = "RadioButtonFocusedCountLabel"
+	};
+
+	Label _radioButtonUnfocusedCountLabel = new Label
+	{
+		Text = "RadioButton Unfocused: 0",
+		AutomationId = "RadioButtonUnfocusedCountLabel"
+	};
+
 	int _buttonFocusedCount;
 	int _buttonUnfocusedCount;
 	int _layoutFocusedCount;
 	int _layoutUnfocusedCount;
+	int _checkBoxFocusedCount;
+	int _checkBoxUnfocusedCount;
+	int _radioButtonFocusedCount;
+	int _radioButtonUnfocusedCount;
 
 	int ButtonFocusedCount
 	{
@@ -72,6 +100,46 @@ public class Issue9 : TestContentPage
 		}
 	}
 
+	int CheckBoxFocusedCount
+	{
+		get { return _checkBoxFocusedCount; }
+		set
+		{
+			_checkBoxFocusedCount = value;
+			_checkBoxFocusedCountLabel.Text = $"CheckBox Focused: {value}";
+		}
+	}
+
+	int CheckBoxUnfocusedCount
+	{
+		get { return _checkBoxUnfocusedCount; }
+		set
+		{
+			_checkBoxUnfocusedCount = value;
+			_checkBoxUnfocusedCountLabel.Text = $"CheckBox Unfocused: {value}";
+		}
+	}
+
+	int RadioButtonFocusedCount
+	{
+		get { return _radioButtonFocusedCount; }
+		set
+		{
+			_radioButtonFocusedCount = value;
+			_radioButtonFocusedCountLabel.Text = $"RadioButton Focused: {value}";
+		}
+	}
+
+	int RadioButtonUnfocusedCount
+	{
+		get { return _radioButtonUnfocusedCount; }
+		set
+		{
+			_radioButtonUnfocusedCount = value;
+			_radioButtonUnfocusedCountLabel.Text = $"RadioButton Unfocused: {value}";
+		}
+	}
+
 	protected override void Init()
 	{
 		var button = new Button
@@ -105,9 +173,38 @@ public class Issue9 : TestContentPage
 			LayoutUnfocusedCount++;
 		};
 
+		var testCheckBox = new CheckBox
+		{
+			AutomationId = "TestCheckBox"
+		};
+
+		testCheckBox.Focused += (sender, e) =>
+		{
+			CheckBoxFocusedCount++;
+		};
+		testCheckBox.Unfocused += (sender, e) =>
+		{
+			CheckBoxUnfocusedCount++;
+		};
+
+		var testRadioButton = new RadioButton
+		{
+			Content = "Test RadioButton",
+			AutomationId = "TestRadioButton"
+		};
+
+		testRadioButton.Focused += (sender, e) =>
+		{
+			RadioButtonFocusedCount++;
+		};
+		testRadioButton.Unfocused += (sender, e) =>
+		{
+			RadioButtonUnfocusedCount++;
+		};
+
 		var instructions = new Label
 		{
-			Text = "Tap the button and layout to test focus events. Focus counts should increment on tap.",
+			Text = "Tap the controls to test focus events. Focus counts should increment on tap.",
 			AutomationId = "Instructions"
 		};
 
@@ -120,10 +217,16 @@ public class Issue9 : TestContentPage
 		mainLayout.Children.Add(instructions);
 		mainLayout.Children.Add(button);
 		mainLayout.Children.Add(testLayout);
+		mainLayout.Children.Add(testCheckBox);
+		mainLayout.Children.Add(testRadioButton);
 		mainLayout.Children.Add(_buttonFocusedCountLabel);
 		mainLayout.Children.Add(_buttonUnfocusedCountLabel);
 		mainLayout.Children.Add(_layoutFocusedCountLabel);
 		mainLayout.Children.Add(_layoutUnfocusedCountLabel);
+		mainLayout.Children.Add(_checkBoxFocusedCountLabel);
+		mainLayout.Children.Add(_checkBoxUnfocusedCountLabel);
+		mainLayout.Children.Add(_radioButtonFocusedCountLabel);
+		mainLayout.Children.Add(_radioButtonUnfocusedCountLabel);
 
 		Content = mainLayout;
 	}

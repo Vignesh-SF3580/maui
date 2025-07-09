@@ -14,6 +14,7 @@ namespace Microsoft.Maui.Handlers
 	{
 		readonly static ConditionalWeakTable<PlatformView, ViewHandler> FocusManagerMapping = new();
 		readonly static ConditionalWeakTable<PlatformView, UITapGestureRecognizer> FocusGestureMapping = new();
+		readonly static ConditionalWeakTable<PlatformView, object> ButtonFocusEventMapping = new();
 		static bool _notificationObserversSet = false;
 		static WeakReference<PlatformView>? _currentFocusedView = null;
 
@@ -125,7 +126,14 @@ namespace Microsoft.Maui.Handlers
 			if (platformView is UITextField or UITextView)
 				return;
 
-			// Add tap gesture recognizer to detect focus events
+			// Handle UIButton controls (including MauiCheckBox) differently using their TouchUpInside event
+			if (platformView is UIButton button)
+			{
+				SetupButtonFocusHandling(button);
+				return;
+			}
+
+			// Add tap gesture recognizer to detect focus events for other controls
 			var tapGesture = new UITapGestureRecognizer(HandleViewTapped);
 			tapGesture.ShouldRecognizeSimultaneously = (recognizer, otherRecognizer) => true;
 			platformView.AddGestureRecognizer(tapGesture);
@@ -134,8 +142,35 @@ namespace Microsoft.Maui.Handlers
 			FocusGestureMapping.Add(platformView, tapGesture);
 		}
 
+		static void SetupButtonFocusHandling(UIButton button)
+		{
+			// Use button's TouchUpInside event to handle focus instead of gesture recognizer
+			EventHandler focusHandler = (sender, e) => HandleButtonFocused(button);
+			button.TouchUpInside += focusHandler;
+			
+			// Store the handler so we can remove it later
+			ButtonFocusEventMapping.Add(button, focusHandler);
+		}
+
+		static void HandleButtonFocused(UIButton button)
+		{
+			HandleViewFocusedInternal(button);
+		}
+
 		static void CleanupFocusGestureRecognizer(PlatformView platformView)
 		{
+			// Cleanup button focus handler if it's a UIButton
+			if (platformView is UIButton button && ButtonFocusEventMapping.TryGetValue(button, out var handlerObj))
+			{
+				if (handlerObj is EventHandler focusHandler)
+				{
+					button.TouchUpInside -= focusHandler;
+				}
+				ButtonFocusEventMapping.Remove(button);
+				return;
+			}
+
+			// Cleanup gesture recognizer for other controls
 			if (FocusGestureMapping.TryGetValue(platformView, out var gestureRecognizer))
 			{
 				platformView.RemoveGestureRecognizer(gestureRecognizer);
