@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using CoreGraphics;
 using Foundation;
+using Microsoft.Maui.Platform;
 using ObjCRuntime;
 using UIKit;
 using PlatformView = UIKit.UIView;
@@ -144,12 +145,24 @@ namespace Microsoft.Maui.Handlers
 
 		static void SetupButtonFocusHandling(UIButton button)
 		{
-			// Use button's TouchUpInside event to handle focus instead of gesture recognizer
-			EventHandler focusHandler = (sender, e) => HandleButtonFocused(button);
-			button.TouchUpInside += focusHandler;
-			
-			// Store the handler so we can remove it later
-			ButtonFocusEventMapping.Add(button, focusHandler);
+			// Special handling for MauiCheckBox - use CheckedChanged event to avoid interfering with checkbox functionality
+			if (button is MauiCheckBox checkBox)
+			{
+				EventHandler focusHandler = (sender, e) => HandleButtonFocused(button);
+				checkBox.CheckedChanged += focusHandler;
+				
+				// Store the handler so we can remove it later
+				ButtonFocusEventMapping.Add(button, focusHandler);
+			}
+			else
+			{
+				// Use button's TouchUpInside event to handle focus for regular buttons
+				EventHandler focusHandler = (sender, e) => HandleButtonFocused(button);
+				button.TouchUpInside += focusHandler;
+				
+				// Store the handler so we can remove it later
+				ButtonFocusEventMapping.Add(button, focusHandler);
+			}
 		}
 
 		static void HandleButtonFocused(UIButton button)
@@ -164,7 +177,15 @@ namespace Microsoft.Maui.Handlers
 			{
 				if (handlerObj is EventHandler focusHandler)
 				{
-					button.TouchUpInside -= focusHandler;
+					// Special cleanup for MauiCheckBox
+					if (button is MauiCheckBox checkBox)
+					{
+						checkBox.CheckedChanged -= focusHandler;
+					}
+					else
+					{
+						button.TouchUpInside -= focusHandler;
+					}
 				}
 				ButtonFocusEventMapping.Remove(button);
 				return;
