@@ -79,6 +79,10 @@ namespace Microsoft.Maui.Handlers
 			if (sender is MauiCheckBox platformView && VirtualView != null)
 			{
 				VirtualView.IsChecked = platformView.IsChecked;
+				
+				// Handle focus event similar to Editor/Entry pattern
+				if (VirtualView is IView view)
+					view.IsFocused = true;
 			}
 		}
 	}

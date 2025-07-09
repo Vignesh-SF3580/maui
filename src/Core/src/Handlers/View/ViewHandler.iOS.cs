@@ -4,7 +4,6 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using CoreGraphics;
 using Foundation;
-using Microsoft.Maui.Platform;
 using ObjCRuntime;
 using UIKit;
 using PlatformView = UIKit.UIView;
@@ -13,57 +12,8 @@ namespace Microsoft.Maui.Handlers
 {
 	public partial class ViewHandler
 	{
-		readonly static ConditionalWeakTable<PlatformView, ViewHandler> FocusManagerMapping = new();
+		readonly static ConditionalWeakTable<PlatformView, ViewHandler> FocusHandlerMapping = new();
 		readonly static ConditionalWeakTable<PlatformView, UITapGestureRecognizer> FocusGestureMapping = new();
-		readonly static ConditionalWeakTable<PlatformView, object> ButtonFocusEventMapping = new();
-		static bool _notificationObserversSet = false;
-		static WeakReference<PlatformView>? _currentFocusedView = null;
-
-		static ViewHandler()
-		{
-			SetupGlobalFocusNotifications();
-		}
-
-		static void SetupGlobalFocusNotifications()
-		{
-			if (_notificationObserversSet)
-				return;
-
-			_notificationObserversSet = true;
-
-			// Listen for text field/text view focus changes
-			NSNotificationCenter.DefaultCenter.AddObserver(
-				UITextField.TextDidBeginEditingNotification,
-				OnTextControlDidBeginEditing);
-
-			NSNotificationCenter.DefaultCenter.AddObserver(
-				UITextField.TextDidEndEditingNotification,
-				OnTextControlDidEndEditing);
-
-			NSNotificationCenter.DefaultCenter.AddObserver(
-				UITextView.TextDidBeginEditingNotification,
-				OnTextControlDidBeginEditing);
-
-			NSNotificationCenter.DefaultCenter.AddObserver(
-				UITextView.TextDidEndEditingNotification,
-				OnTextControlDidEndEditing);
-		}
-
-		static void OnTextControlDidBeginEditing(NSNotification notification)
-		{
-			if (notification.Object is PlatformView platformView)
-			{
-				HandleViewFocusedInternal(platformView);
-			}
-		}
-
-		static void OnTextControlDidEndEditing(NSNotification notification)
-		{
-			if (notification.Object is PlatformView platformView)
-			{
-				HandleViewUnfocusedInternal(platformView);
-			}
-		}
 
 		[System.Runtime.Versioning.SupportedOSPlatform("ios13.0")]
 		public static void MapContextFlyout(IViewHandler handler, IView view)
@@ -109,32 +59,30 @@ namespace Microsoft.Maui.Handlers
 		{
 			if (platformView is not null)
 			{
-				FocusManagerMapping.Add(platformView, this);
-				SetupFocusGestureRecognizer(platformView);
+				// Add focus handling for generic views like StackLayout that don't have specific handlers
+				// Skip text input controls and button controls as they handle focus in their own handlers
+				if (ShouldAddFocusGestureRecognizer(platformView))
+				{
+					FocusHandlerMapping.Add(platformView, this);
+					SetupFocusGestureRecognizer(platformView);
+				}
 			}
 		}
 
 		partial void DisconnectingHandler(PlatformView platformView)
 		{
 			CleanupFocusGestureRecognizer(platformView);
-			FocusManagerMapping.Remove(platformView);
-			UpdateIsFocused(false);
+			FocusHandlerMapping.Remove(platformView);
+		}
+
+		static bool ShouldAddFocusGestureRecognizer(PlatformView platformView)
+		{
+			// Don't add gesture recognizer to controls that handle focus in their own handlers
+			return platformView is not (UITextField or UITextView or UIButton);
 		}
 
 		static void SetupFocusGestureRecognizer(PlatformView platformView)
 		{
-			// Don't add gesture recognizer to text input controls - they handle focus through first responder
-			if (platformView is UITextField or UITextView)
-				return;
-
-			// Handle UIButton controls (including MauiCheckBox) differently using their TouchUpInside event
-			if (platformView is UIButton button)
-			{
-				SetupButtonFocusHandling(button);
-				return;
-			}
-
-			// Add tap gesture recognizer to detect focus events for other controls
 			var tapGesture = new UITapGestureRecognizer(HandleViewTapped);
 			tapGesture.ShouldRecognizeSimultaneously = (recognizer, otherRecognizer) => true;
 			platformView.AddGestureRecognizer(tapGesture);
@@ -143,55 +91,8 @@ namespace Microsoft.Maui.Handlers
 			FocusGestureMapping.Add(platformView, tapGesture);
 		}
 
-		static void SetupButtonFocusHandling(UIButton button)
-		{
-			// Special handling for MauiCheckBox - use CheckedChanged event to avoid interfering with checkbox functionality
-			if (button is MauiCheckBox checkBox)
-			{
-				EventHandler focusHandler = (sender, e) => HandleButtonFocused(button);
-				checkBox.CheckedChanged += focusHandler;
-				
-				// Store the handler so we can remove it later
-				ButtonFocusEventMapping.Add(button, focusHandler);
-			}
-			else
-			{
-				// Use button's TouchUpInside event to handle focus for regular buttons
-				EventHandler focusHandler = (sender, e) => HandleButtonFocused(button);
-				button.TouchUpInside += focusHandler;
-				
-				// Store the handler so we can remove it later
-				ButtonFocusEventMapping.Add(button, focusHandler);
-			}
-		}
-
-		static void HandleButtonFocused(UIButton button)
-		{
-			HandleViewFocusedInternal(button);
-		}
-
 		static void CleanupFocusGestureRecognizer(PlatformView platformView)
 		{
-			// Cleanup button focus handler if it's a UIButton
-			if (platformView is UIButton button && ButtonFocusEventMapping.TryGetValue(button, out var handlerObj))
-			{
-				if (handlerObj is EventHandler focusHandler)
-				{
-					// Special cleanup for MauiCheckBox
-					if (button is MauiCheckBox checkBox)
-					{
-						checkBox.CheckedChanged -= focusHandler;
-					}
-					else
-					{
-						button.TouchUpInside -= focusHandler;
-					}
-				}
-				ButtonFocusEventMapping.Remove(button);
-				return;
-			}
-
-			// Cleanup gesture recognizer for other controls
 			if (FocusGestureMapping.TryGetValue(platformView, out var gestureRecognizer))
 			{
 				platformView.RemoveGestureRecognizer(gestureRecognizer);
@@ -202,65 +103,12 @@ namespace Microsoft.Maui.Handlers
 
 		static void HandleViewTapped(UITapGestureRecognizer tapGesture)
 		{
-			if (tapGesture.View is PlatformView platformView)
+			if (tapGesture.View is PlatformView platformView && 
+				FocusHandlerMapping.TryGetValue(platformView, out ViewHandler? handler))
 			{
-				HandleViewFocusedInternal(platformView);
-			}
-		}
-
-		private static void HandleViewFocusedInternal(PlatformView platformView)
-		{
-			// Unfocus the previously focused view
-			if (_currentFocusedView?.TryGetTarget(out var previousView) == true && previousView != platformView)
-			{
-				HandleViewUnfocusedInternal(previousView);
-			}
-
-			// Focus the new view
-			_currentFocusedView = new WeakReference<PlatformView>(platformView);
-			OnViewBecameFirstResponder(platformView);
-		}
-
-		private static void HandleViewUnfocusedInternal(PlatformView platformView)
-		{
-			OnViewResignedFirstResponder(platformView);
-		}
-
-		// Make these methods accessible from ViewExtensions
-		internal static void HandleViewFocused(PlatformView platformView) => 
-			HandleViewFocusedInternal(platformView);
-		
-		internal static void HandleViewUnfocused(PlatformView platformView) => 
-			HandleViewUnfocusedInternal(platformView);
-
-		private protected void UpdateIsFocused(bool isFocused)
-		{
-			if (VirtualView is not { } virtualView)
-			{
-				return;
-			}
-
-			bool updateIsFocused = (isFocused && !virtualView.IsFocused) || (!isFocused && virtualView.IsFocused);
-
-			if (updateIsFocused)
-			{
-				virtualView.IsFocused = isFocused;
-			}
-		}
-
-		internal static void OnViewBecameFirstResponder(PlatformView platformView)
-		{
-			if (FocusManagerMapping.TryGetValue(platformView, out ViewHandler? handler))
-			{
-				handler.UpdateIsFocused(true);
-			}
-		}
-
-		internal static void OnViewResignedFirstResponder(PlatformView platformView)
-		{
-			if (FocusManagerMapping.TryGetValue(platformView, out ViewHandler? handler))
-			{
-				handler.UpdateIsFocused(false);
+				// Handle focus event similar to Editor/Entry pattern
+				if (handler.VirtualView is IView view)
+					view.IsFocused = true;
 			}
 		}
 

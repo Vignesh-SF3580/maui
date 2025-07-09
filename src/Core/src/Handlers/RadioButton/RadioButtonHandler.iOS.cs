@@ -1,15 +1,30 @@
 ﻿using System;
+using UIKit;
 
 namespace Microsoft.Maui.Handlers
 {
 	public partial class RadioButtonHandler : ViewHandler<IRadioButton, ContentView>
 	{
+		readonly RadioButtonEventProxy _proxy = new();
+
 		protected override ContentView CreatePlatformView()
 		{
 			_ = VirtualView ?? throw new InvalidOperationException($"{nameof(VirtualView)} must be set to create a {nameof(ContentView)}");
 			_ = MauiContext ?? throw new InvalidOperationException($"{nameof(MauiContext)} cannot be null");
 
 			return new SemanticSwitchContentView(VirtualView);
+		}
+
+		protected override void ConnectHandler(ContentView platformView)
+		{
+			base.ConnectHandler(platformView);
+			_proxy.Connect(VirtualView, platformView);
+		}
+
+		protected override void DisconnectHandler(ContentView platformView)
+		{
+			base.DisconnectHandler(platformView);
+			_proxy.Disconnect(platformView);
 		}
 
 		public override void SetVirtualView(IView view)
@@ -65,5 +80,43 @@ namespace Microsoft.Maui.Handlers
 
 		[MissingMapper]
 		public static void MapCornerRadius(IRadioButtonHandler handler, IRadioButton radioButton) { }
+
+		class RadioButtonEventProxy
+		{
+			WeakReference<IRadioButton>? _virtualView;
+			UITapGestureRecognizer? _tapGestureRecognizer;
+
+			IRadioButton? VirtualView => _virtualView is not null && _virtualView.TryGetTarget(out var v) ? v : null;
+
+			public void Connect(IRadioButton virtualView, ContentView platformView)
+			{
+				_virtualView = new(virtualView);
+
+				// Add tap gesture recognizer to detect focus events
+				_tapGestureRecognizer = new UITapGestureRecognizer(OnTapped);
+				_tapGestureRecognizer.ShouldRecognizeSimultaneously = (recognizer, otherRecognizer) => true;
+				platformView.AddGestureRecognizer(_tapGestureRecognizer);
+				platformView.UserInteractionEnabled = true;
+			}
+
+			public void Disconnect(ContentView platformView)
+			{
+				_virtualView = null;
+
+				if (_tapGestureRecognizer != null)
+				{
+					platformView.RemoveGestureRecognizer(_tapGestureRecognizer);
+					_tapGestureRecognizer?.Dispose();
+					_tapGestureRecognizer = null;
+				}
+			}
+
+			void OnTapped()
+			{
+				// Handle focus event similar to Editor/Entry pattern
+				if (VirtualView is IView view)
+					view.IsFocused = true;
+			}
+		}
 	}
 }

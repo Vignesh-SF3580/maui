@@ -25,41 +25,12 @@ namespace Microsoft.Maui.Platform
 
 		public static void Focus(this UIView platformView, FocusRequest request)
 		{
-			bool result = false;
-			
-			// For text input controls, use first responder
-			if (platformView is UITextField or UITextView)
-			{
-				result = platformView.BecomeFirstResponder();
-			}
-			else
-			{
-				// For other controls, simulate focus through our gesture system
-				Handlers.ViewHandler.HandleViewFocused(platformView);
-				result = true;
-			}
-			
-			request.TrySetResult(result);
+			request.TrySetResult(platformView.BecomeFirstResponder());
 		}
 
 		public static void Unfocus(this UIView platformView, IView view)
 		{
-			// For text input controls, resign first responder
-			if (platformView is UITextField or UITextView)
-			{
-				bool wasFirstResponder = platformView.IsFirstResponder;
-				platformView.ResignFirstResponder();
-				
-				if (wasFirstResponder)
-				{
-					Handlers.ViewHandler.OnViewResignedFirstResponder(platformView);
-				}
-			}
-			else
-			{
-				// For other controls, handle unfocus through our system
-				Handlers.ViewHandler.HandleViewUnfocused(platformView);
-			}
+			platformView.ResignFirstResponder();
 		}
 
 		public static void UpdateVisibility(this UIView platformView, IView view) =>
