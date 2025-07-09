@@ -8,19 +8,19 @@ public class Issue9 : TestContentPage
 		Text = "Button Focused: 0",
 		AutomationId = "ButtonFocusedCountLabel"
 	};
-	
+
 	Label _buttonUnfocusedCountLabel = new Label
 	{
 		Text = "Button Unfocused: 0",
 		AutomationId = "ButtonUnfocusedCountLabel"
 	};
-	
+
 	Label _layoutFocusedCountLabel = new Label
 	{
 		Text = "Layout Focused: 0",
 		AutomationId = "LayoutFocusedCountLabel"
 	};
-	
+
 	Label _layoutUnfocusedCountLabel = new Label
 	{
 		Text = "Layout Unfocused: 0",
@@ -79,7 +79,7 @@ public class Issue9 : TestContentPage
 			Text = "Test Button",
 			AutomationId = "TestButton"
 		};
-		
+
 		button.Focused += (sender, e) =>
 		{
 			ButtonFocusedCount++;
@@ -95,7 +95,7 @@ public class Issue9 : TestContentPage
 			HeightRequest = 100,
 			AutomationId = "TestLayout"
 		};
-		
+
 		testLayout.Focused += (sender, e) =>
 		{
 			LayoutFocusedCount++;
@@ -116,7 +116,7 @@ public class Issue9 : TestContentPage
 			Padding = 20,
 			Spacing = 10
 		};
-		
+
 		mainLayout.Children.Add(instructions);
 		mainLayout.Children.Add(button);
 		mainLayout.Children.Add(testLayout);

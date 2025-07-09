@@ -13,7 +13,9 @@ namespace Microsoft.Maui.Handlers
 	public partial class ViewHandler
 	{
 		readonly static ConditionalWeakTable<PlatformView, ViewHandler> FocusManagerMapping = new();
+		readonly static ConditionalWeakTable<PlatformView, UITapGestureRecognizer> FocusGestureMapping = new();
 		static bool _notificationObserversSet = false;
+		static WeakReference<PlatformView>? _currentFocusedView = null;
 
 		static ViewHandler()
 		{
@@ -49,7 +51,7 @@ namespace Microsoft.Maui.Handlers
 		{
 			if (notification.Object is PlatformView platformView)
 			{
-				OnViewBecameFirstResponder(platformView);
+				HandleViewFocusedInternal(platformView);
 			}
 		}
 
@@ -57,7 +59,7 @@ namespace Microsoft.Maui.Handlers
 		{
 			if (notification.Object is PlatformView platformView)
 			{
-				OnViewResignedFirstResponder(platformView);
+				HandleViewUnfocusedInternal(platformView);
 			}
 		}
 
@@ -106,14 +108,74 @@ namespace Microsoft.Maui.Handlers
 			if (platformView is not null)
 			{
 				FocusManagerMapping.Add(platformView, this);
+				SetupFocusGestureRecognizer(platformView);
 			}
 		}
 
 		partial void DisconnectingHandler(PlatformView platformView)
 		{
+			CleanupFocusGestureRecognizer(platformView);
 			FocusManagerMapping.Remove(platformView);
 			UpdateIsFocused(false);
 		}
+
+		static void SetupFocusGestureRecognizer(PlatformView platformView)
+		{
+			// Don't add gesture recognizer to text input controls - they handle focus through first responder
+			if (platformView is UITextField or UITextView)
+				return;
+
+			// Add tap gesture recognizer to detect focus events
+			var tapGesture = new UITapGestureRecognizer(HandleViewTapped);
+			tapGesture.ShouldRecognizeSimultaneously = (recognizer, otherRecognizer) => true;
+			platformView.AddGestureRecognizer(tapGesture);
+			platformView.UserInteractionEnabled = true;
+			
+			FocusGestureMapping.Add(platformView, tapGesture);
+		}
+
+		static void CleanupFocusGestureRecognizer(PlatformView platformView)
+		{
+			if (FocusGestureMapping.TryGetValue(platformView, out var gestureRecognizer))
+			{
+				platformView.RemoveGestureRecognizer(gestureRecognizer);
+				FocusGestureMapping.Remove(platformView);
+				gestureRecognizer?.Dispose();
+			}
+		}
+
+		static void HandleViewTapped(UITapGestureRecognizer tapGesture)
+		{
+			if (tapGesture.View is PlatformView platformView)
+			{
+				HandleViewFocusedInternal(platformView);
+			}
+		}
+
+		private static void HandleViewFocusedInternal(PlatformView platformView)
+		{
+			// Unfocus the previously focused view
+			if (_currentFocusedView?.TryGetTarget(out var previousView) == true && previousView != platformView)
+			{
+				HandleViewUnfocusedInternal(previousView);
+			}
+
+			// Focus the new view
+			_currentFocusedView = new WeakReference<PlatformView>(platformView);
+			OnViewBecameFirstResponder(platformView);
+		}
+
+		private static void HandleViewUnfocusedInternal(PlatformView platformView)
+		{
+			OnViewResignedFirstResponder(platformView);
+		}
+
+		// Make these methods accessible from ViewExtensions
+		internal static void HandleViewFocused(PlatformView platformView) => 
+			HandleViewFocusedInternal(platformView);
+		
+		internal static void HandleViewUnfocused(PlatformView platformView) => 
+			HandleViewUnfocusedInternal(platformView);
 
 		private protected void UpdateIsFocused(bool isFocused)
 		{
