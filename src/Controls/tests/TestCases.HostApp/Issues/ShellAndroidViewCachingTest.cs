@@ -1,9 +1,9 @@
 using Microsoft.Maui.Controls;
 
-namespace Maui.Controls.Sample.Issues.Shell
+namespace Maui.Controls.Sample.Issues
 {
 	[Issue(IssueTracker.Github, 11, "Shell flyout navigation lag on Android with complex pages")]
-	public class ShellAndroidViewCachingTest : TestShell
+	public class ShellAndroidViewCachingTest : Shell
 	{
 		public ShellAndroidViewCachingTest()
 		{
