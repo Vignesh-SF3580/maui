@@ -6,6 +6,7 @@ using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Reflection;
 using Microsoft.Maui.Controls.Internals;
+using Microsoft.Maui.Dispatching;
 
 namespace Microsoft.Maui.Controls
 {
@@ -29,6 +30,10 @@ namespace Microsoft.Maui.Controls
 		public static readonly BindableProperty ContentTemplateProperty =
 			BindableProperty.Create(nameof(ContentTemplate), typeof(DataTemplate), typeof(ShellContent), null, BindingMode.OneTime);
 
+		/// <summary>Bindable property for <see cref="IsContentPreloadEnabled"/>.</summary>
+		public static readonly BindableProperty IsContentPreloadEnabledProperty =
+			BindableProperty.Create(nameof(IsContentPreloadEnabled), typeof(bool), typeof(ShellContent), false);
+
 		internal static readonly BindableProperty QueryAttributesProperty =
 			BindableProperty.CreateAttached("QueryAttributes", typeof(ShellRouteParameters), typeof(ShellContent), defaultValue: null, propertyChanged: OnQueryAttributesPropertyChanged);
 
@@ -49,12 +54,23 @@ namespace Microsoft.Maui.Controls
 			set => SetValue(ContentTemplateProperty, value);
 		}
 
+		/// <summary>
+		/// Gets or sets a value indicating whether the content should be preloaded for improved navigation performance.
+		/// When enabled, the page will be created eagerly instead of on-demand during navigation.
+		/// </summary>
+		public bool IsContentPreloadEnabled
+		{
+			get => (bool)GetValue(IsContentPreloadEnabledProperty);
+			set => SetValue(IsContentPreloadEnabledProperty, value);
+		}
+
 		Page IShellContentController.Page => ContentCache;
 
 		EventHandler _isPageVisibleChanged;
 		event EventHandler IShellContentController.IsPageVisibleChanged { add => _isPageVisibleChanged += value; remove => _isPageVisibleChanged -= value; }
 
 		bool _createdViaService;
+		bool _isPreloaded;
 		Page IShellContentController.GetOrCreateContent()
 		{
 			var template = ContentTemplate;
@@ -114,12 +130,32 @@ namespace Microsoft.Maui.Controls
 		{
 		}
 
+		/// <summary>
+		/// Preloads the content if IsContentPreloadEnabled is true and content hasn't been loaded yet.
+		/// This can improve navigation performance by creating the page eagerly.
+		/// </summary>
+		public void PreloadContent()
+		{
+			if (IsContentPreloadEnabled && ContentCache == null && !_isPreloaded)
+			{
+				_isPreloaded = true;
+				// Create the content to cache it
+				_ = ((IShellContentController)this).GetOrCreateContent();
+			}
+		}
+
+		/// <summary>
+		/// Gets a value indicating whether the content has been preloaded.
+		/// </summary>
+		public bool IsContentPreloaded => _isPreloaded || ContentCache != null;
+
 		Page _contentCache;
 
 		/// <include file="../../../docs/Microsoft.Maui.Controls/ShellContent.xml" path="//Member[@MemberName='.ctor']/Docs/*" />
 		public ShellContent()
 		{
 			((INotifyCollectionChanged)MenuItems).CollectionChanged += MenuItemsCollectionChanged;
+			PropertyChanged += OnShellContentPropertyChanged;
 		}
 
 		internal bool IsVisibleContent => Parent is ShellSection shellSection && shellSection.IsVisibleSection && shellSection.CurrentItem == this;
@@ -273,6 +309,27 @@ namespace Microsoft.Maui.Controls
 		}
 
 		void OnPageUnloaded(object sender, EventArgs e) => EvaluateDisconnect();
+
+		void OnShellContentPropertyChanged(object sender, PropertyChangedEventArgs e)
+		{
+			if (e.PropertyName == nameof(Parent) && Parent != null)
+			{
+				// When the ShellContent is added to a Shell, trigger preloading if enabled
+				if (IsContentPreloadEnabled)
+				{
+					// Use the dispatcher to avoid blocking the UI thread during Shell construction
+					if (Parent?.FindMauiContext()?.Services?.GetService(typeof(Microsoft.Maui.Dispatching.IDispatcher)) is Microsoft.Maui.Dispatching.IDispatcher dispatcher)
+					{
+						dispatcher.Dispatch(PreloadContent);
+					}
+					else
+					{
+						// Fallback if dispatcher is not available
+						PreloadContent();
+					}
+				}
+			}
+		}
 
 		public static implicit operator ShellContent(TemplatedPage page)
 		{

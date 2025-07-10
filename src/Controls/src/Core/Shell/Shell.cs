@@ -354,6 +354,14 @@ namespace Microsoft.Maui.Controls
 			}
 		}
 
+		static void OnIsContentPreloadEnabledChanged(BindableObject bindable, object oldValue, object newValue)
+		{
+			if (bindable is Shell shell && (bool)newValue)
+			{
+				shell.TriggerContentPreloading();
+			}
+		}
+
 		/// <summary>
 		/// Defines the background color in the Shell chrome. 
 		/// The color won't fill in behind the Shell content.
@@ -1148,6 +1156,13 @@ namespace Microsoft.Maui.Controls
 		public static readonly BindableProperty FlyoutVerticalScrollModeProperty =
 			BindableProperty.Create(nameof(FlyoutVerticalScrollMode), typeof(ScrollMode), typeof(Shell), ScrollMode.Auto);
 
+		/// <summary>
+		/// Enables automatic preloading of Shell content to improve navigation performance.
+		/// When enabled, pages in flyout items will be created eagerly for faster navigation.
+		/// </summary>
+		public static readonly BindableProperty IsContentPreloadEnabledProperty =
+			BindableProperty.Create(nameof(IsContentPreloadEnabled), typeof(bool), typeof(Shell), false, propertyChanged: OnIsContentPreloadEnabledChanged);
+
 		View _flyoutHeaderView;
 		View _flyoutFooterView;
 		ShellNavigationManager _navigationManager;
@@ -1176,6 +1191,7 @@ namespace Microsoft.Maui.Controls
 
 			ShellController.FlyoutItemsChanged += (_, __) => Handler?.UpdateValue(nameof(FlyoutItems));
 			ShellController.ItemsCollectionChanged += (_, __) => Handler?.UpdateValue(nameof(Items));
+			ShellController.ItemsCollectionChanged += OnItemsCollectionChanged;
 		}
 
 		private protected override void OnHandlerChangingCore(HandlerChangingEventArgs args)
@@ -1285,6 +1301,16 @@ namespace Microsoft.Maui.Controls
 		{
 			get => (ScrollMode)GetValue(FlyoutVerticalScrollModeProperty);
 			set => SetValue(FlyoutVerticalScrollModeProperty, value);
+		}
+
+		/// <summary>
+		/// Gets or sets a value indicating whether content preloading is enabled for improved navigation performance.
+		/// When enabled, pages in flyout items will be created eagerly for faster navigation.
+		/// </summary>
+		public bool IsContentPreloadEnabled
+		{
+			get => (bool)GetValue(IsContentPreloadEnabledProperty);
+			set => SetValue(IsContentPreloadEnabledProperty, value);
 		}
 
 		public event EventHandler<ShellNavigatedEventArgs> Navigated;
@@ -1512,6 +1538,58 @@ namespace Microsoft.Maui.Controls
 		{
 			UpdateChecked(this);
 			_structureChanged?.Invoke(this, EventArgs.Empty);
+		}
+
+		/// <summary>
+		/// Triggers content preloading for all Shell content items when IsContentPreloadEnabled is true.
+		/// </summary>
+		void TriggerContentPreloading()
+		{
+			if (!IsContentPreloadEnabled)
+				return;
+
+			// Use the dispatcher to avoid blocking the UI thread
+			if (Handler?.MauiContext?.Services?.GetService(typeof(Microsoft.Maui.Dispatching.IDispatcher)) is Microsoft.Maui.Dispatching.IDispatcher dispatcher)
+			{
+				dispatcher.Dispatch(() =>
+				{
+					foreach (var item in Items)
+					{
+						PreloadShellItemContent(item);
+					}
+				});
+			}
+		}
+
+		void PreloadShellItemContent(ShellItem shellItem)
+		{
+			foreach (var section in shellItem.Items)
+			{
+				foreach (var content in section.Items)
+				{
+					if (content is ShellContent shellContent)
+					{
+						// Enable preloading for the individual ShellContent
+						shellContent.IsContentPreloadEnabled = true;
+						// Trigger the preloading
+						shellContent.PreloadContent();
+					}
+				}
+			}
+		}
+
+		void OnItemsCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+		{
+			if (!IsContentPreloadEnabled)
+				return;
+
+			if (e.NewItems != null)
+			{
+				foreach (ShellItem newItem in e.NewItems)
+				{
+					PreloadShellItemContent(newItem);
+				}
+			}
 		}
 
 		protected override bool OnBackButtonPressed()
