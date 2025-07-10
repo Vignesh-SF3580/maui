@@ -142,24 +142,7 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 
 			var appBar = _root.FindViewById<AppBarLayout>(Resource.Id.shellcontent_appbar);
 			appBar.AddView(_toolbar);
-			
-			// Use preloaded handler if available to improve performance
-			if (_shellContent?.PreloadedHandler is IPlatformViewHandler preloadedHandler && 
-				preloadedHandler.PlatformView != null)
-			{
-				_viewhandler = preloadedHandler;
-				// Update the handler's context if needed
-				if (_viewhandler.MauiContext != shellContentMauiContext)
-				{
-					// The preloaded handler might have a different context, but the platform view should still be usable
-					// We'll keep the preloaded handler since the expensive view creation is already done
-				}
-			}
-			else
-			{
-				// Fallback to creating handler on-demand if no preloaded handler is available
-				_viewhandler = _page.ToHandler(shellContentMauiContext);
-			}
+			_viewhandler = _page.ToHandler(shellContentMauiContext);
 
 			_shellPageContainer = new ShellPageContainer(Context, _viewhandler);
 

@@ -1,15 +1,7 @@
 #nullable enable
-Microsoft.Maui.Controls.Shell.IsContentPreloadEnabled.get -> bool
-Microsoft.Maui.Controls.Shell.IsContentPreloadEnabled.set -> void
-Microsoft.Maui.Controls.ShellContent.IsContentPreloadEnabled.get -> bool
-Microsoft.Maui.Controls.ShellContent.IsContentPreloadEnabled.set -> void
-Microsoft.Maui.Controls.ShellContent.IsContentPreloaded.get -> bool
-Microsoft.Maui.Controls.ShellContent.PreloadContent() -> void
-override Microsoft.Maui.Controls.ContentPresenter.OnSizeAllocated(double width, double height) -> void
 override Microsoft.Maui.Controls.ScrollView.OnSizeAllocated(double width, double height) -> void
 override Microsoft.Maui.Controls.TemplatedView.OnSizeAllocated(double width, double height) -> void
-~static readonly Microsoft.Maui.Controls.Shell.IsContentPreloadEnabledProperty -> Microsoft.Maui.Controls.BindableProperty
-~static readonly Microsoft.Maui.Controls.ShellContent.IsContentPreloadEnabledProperty -> Microsoft.Maui.Controls.BindableProperty
+override Microsoft.Maui.Controls.ContentPresenter.OnSizeAllocated(double width, double height) -> void
 virtual Microsoft.Maui.Controls.BindableProperty.CreateDefaultValueDelegate<TDeclarer, TPropertyType>.Invoke(TDeclarer bindable) -> TPropertyType
 ~virtual Microsoft.Maui.Controls.BindableProperty.BindingPropertyChangedDelegate.Invoke(Microsoft.Maui.Controls.BindableObject bindable, object oldValue, object newValue) -> void
 ~virtual Microsoft.Maui.Controls.BindableProperty.BindingPropertyChangedDelegate<TPropertyType>.Invoke(Microsoft.Maui.Controls.BindableObject bindable, TPropertyType oldValue, TPropertyType newValue) -> void

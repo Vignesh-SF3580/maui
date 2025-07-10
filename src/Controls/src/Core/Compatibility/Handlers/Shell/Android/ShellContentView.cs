@@ -115,68 +115,13 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 				if (!(_context.TryGetTarget(out context)))
 					return;
 
-				// Check if this is a Page with preloaded handler to improve flyout navigation performance
-				if (view is Page page && TryGetPreloadedHandler(page, out var preloadedHandler))
-				{
-					// Use the preloaded handler if available
-					PlatformView = preloadedHandler.PlatformView as AView;
-					Handler = preloadedHandler;
-					page.Handler = preloadedHandler;
-				}
-				else
-				{
-					// Fallback to creating handler on-demand
-					PlatformView = view.ToPlatform(_mauiContext);
-					Handler = view.Handler;
-				}
+				PlatformView = view.ToPlatform(_mauiContext);
+				Handler = view.Handler;
 			}
 			else
 			{
 				PlatformView = null;
 			}
-		}
-
-		bool TryGetPreloadedHandler(Page page, out IViewHandler preloadedHandler)
-		{
-			preloadedHandler = null;
-
-			// Try to find a ShellContent with a preloaded handler for this page
-			// Look for ShellContent in the page's logical parent hierarchy
-			var current = page.Parent;
-			while (current != null)
-			{
-				if (current is ShellContent shellContent && 
-					((IShellContentController)shellContent).Page == page && 
-					shellContent.PreloadedHandler != null)
-				{
-					preloadedHandler = shellContent.PreloadedHandler;
-					return true;
-				}
-				current = current.Parent;
-			}
-
-			// If not found in parent hierarchy, search in the Shell (fallback)
-			if (page.Parent is Shell shell)
-			{
-				foreach (var item in shell.Items)
-				{
-					foreach (var section in item.Items)
-					{
-						foreach (var content in section.Items)
-						{
-							if (content is ShellContent shellContent && 
-								((IShellContentController)shellContent).Page == page && 
-								shellContent.PreloadedHandler != null)
-							{
-								preloadedHandler = shellContent.PreloadedHandler;
-								return true;
-							}
-						}
-					}
-				}
-			}
-
-			return false;
 		}
 	}
 }
