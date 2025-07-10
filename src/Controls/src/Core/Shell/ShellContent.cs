@@ -161,28 +161,14 @@ namespace Microsoft.Maui.Controls
 				var mauiContext = Parent?.FindMauiContext();
 				if (mauiContext != null)
 				{
-					// Create the handler asynchronously to avoid blocking the UI thread
-					var dispatcher = mauiContext.Services?.GetService(typeof(Microsoft.Maui.Dispatching.IDispatcher)) as Microsoft.Maui.Dispatching.IDispatcher;
-					if (dispatcher != null)
-					{
-						dispatcher.Dispatch(() =>
-						{
-							try
-							{
-								_preloadedHandler = page.ToHandler(mauiContext);
-							}
-							catch
-							{
-								// If handler creation fails, navigation will fall back to creating it on-demand
-								_preloadedHandler = null;
-							}
-						});
-					}
+					// Create the handler synchronously during preloading to cache it for later use
+					// This is safe because preloading is triggered asynchronously
+					_preloadedHandler = page.ToHandler(mauiContext);
 				}
 			}
 			catch
 			{
-				// If preloading fails, navigation will fall back to creating handler on-demand
+				// If handler creation fails, navigation will fall back to creating it on-demand
 				_preloadedHandler = null;
 			}
 		}
@@ -191,6 +177,11 @@ namespace Microsoft.Maui.Controls
 		/// Gets a value indicating whether the content has been preloaded.
 		/// </summary>
 		public bool IsContentPreloaded => _isPreloaded || ContentCache != null;
+
+		/// <summary>
+		/// Gets the preloaded handler if available, for internal use by platform implementations.
+		/// </summary>
+		internal IViewHandler PreloadedHandler => _preloadedHandler;
 
 		Page _contentCache;
 
@@ -295,7 +286,9 @@ namespace Microsoft.Maui.Controls
 				else if (value == null)
 				{
 					// Clear preloaded handler when content is cleared
+					_preloadedHandler?.DisconnectHandler();
 					_preloadedHandler = null;
+					_isPreloaded = false;
 				}
 
 				if (Parent is not null)
@@ -341,7 +334,9 @@ namespace Microsoft.Maui.Controls
 			}
 
 			_contentCache = null;
+			_preloadedHandler?.DisconnectHandler();
 			_preloadedHandler = null;
+			_isPreloaded = false;
 		}
 
 		protected override void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string propertyName = null)
