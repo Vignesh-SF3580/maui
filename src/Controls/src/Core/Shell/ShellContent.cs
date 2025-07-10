@@ -140,11 +140,26 @@ namespace Microsoft.Maui.Controls
 			if (IsContentPreloadEnabled && ContentCache == null && !_isPreloaded)
 			{
 				_isPreloaded = true;
-				// Create the content to cache it
-				var page = ((IShellContentController)this).GetOrCreateContent();
 				
-				// Also preload the platform handler if possible (important for Android performance)
-				PreloadPlatformHandler(page);
+				try
+				{
+					// Create the content to cache it
+					var page = ((IShellContentController)this).GetOrCreateContent();
+					
+					// Also preload the platform handler if possible (important for Android performance)
+					PreloadPlatformHandler(page);
+				}
+				catch (Exception)
+				{
+					// If preloading fails, reset the flag so navigation can try again
+					_isPreloaded = false;
+					// Clear any partially created content
+					if (_preloadedHandler != null)
+					{
+						_preloadedHandler.DisconnectHandler();
+						_preloadedHandler = null;
+					}
+				}
 			}
 		}
 
@@ -166,7 +181,7 @@ namespace Microsoft.Maui.Controls
 					_preloadedHandler = page.ToHandler(mauiContext);
 				}
 			}
-			catch
+			catch (Exception)
 			{
 				// If handler creation fails, navigation will fall back to creating it on-demand
 				_preloadedHandler = null;

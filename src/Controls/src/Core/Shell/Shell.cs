@@ -1206,7 +1206,15 @@ namespace Microsoft.Maui.Controls
 				Application.Current.RequestedThemeChanged -= OnRequestedThemeChanged;
 
 			if (args.NewHandler != null && args.OldHandler == null)
+			{
 				Application.Current.RequestedThemeChanged += OnRequestedThemeChanged;
+				
+				// Trigger content preloading when handler is set and MauiContext becomes available
+				if (IsContentPreloadEnabled)
+				{
+					TriggerContentPreloading();
+				}
+			}
 #pragma warning restore CS0618 // Type or member is obsolete
 		}
 
@@ -1553,11 +1561,22 @@ namespace Microsoft.Maui.Controls
 			{
 				dispatcher.Dispatch(() =>
 				{
-					foreach (var item in Items)
-					{
-						PreloadShellItemContent(item);
-					}
+					PreloadAllContent();
 				});
+			}
+			else
+			{
+				// If dispatcher is not available, try to preload synchronously
+				// This should be safe since it's called when handler is changing
+				PreloadAllContent();
+			}
+		}
+
+		void PreloadAllContent()
+		{
+			foreach (var item in Items)
+			{
+				PreloadShellItemContent(item);
 			}
 		}
 
