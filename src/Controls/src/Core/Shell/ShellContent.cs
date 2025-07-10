@@ -71,6 +71,7 @@ namespace Microsoft.Maui.Controls
 
 		bool _createdViaService;
 		bool _isPreloaded;
+		IViewHandler _preloadedHandler;
 		Page IShellContentController.GetOrCreateContent()
 		{
 			var template = ContentTemplate;
@@ -140,7 +141,49 @@ namespace Microsoft.Maui.Controls
 			{
 				_isPreloaded = true;
 				// Create the content to cache it
-				_ = ((IShellContentController)this).GetOrCreateContent();
+				var page = ((IShellContentController)this).GetOrCreateContent();
+				
+				// Also preload the platform handler if possible (important for Android performance)
+				PreloadPlatformHandler(page);
+			}
+		}
+
+		/// <summary>
+		/// Preloads the platform handler for the page to improve navigation performance on Android.
+		/// </summary>
+		void PreloadPlatformHandler(Page page)
+		{
+			if (page == null || _preloadedHandler != null)
+				return;
+
+			try
+			{
+				var mauiContext = Parent?.FindMauiContext();
+				if (mauiContext != null)
+				{
+					// Create the handler asynchronously to avoid blocking the UI thread
+					var dispatcher = mauiContext.Services?.GetService(typeof(Microsoft.Maui.Dispatching.IDispatcher)) as Microsoft.Maui.Dispatching.IDispatcher;
+					if (dispatcher != null)
+					{
+						dispatcher.Dispatch(() =>
+						{
+							try
+							{
+								_preloadedHandler = page.ToHandler(mauiContext);
+							}
+							catch
+							{
+								// If handler creation fails, navigation will fall back to creating it on-demand
+								_preloadedHandler = null;
+							}
+						});
+					}
+				}
+			}
+			catch
+			{
+				// If preloading fails, navigation will fall back to creating handler on-demand
+				_preloadedHandler = null;
 			}
 		}
 
@@ -249,6 +292,11 @@ namespace Microsoft.Maui.Controls
 						value.Unloaded += OnPageUnloaded;
 					}
 				}
+				else if (value == null)
+				{
+					// Clear preloaded handler when content is cleared
+					_preloadedHandler = null;
+				}
 
 				if (Parent is not null)
 				{
@@ -293,6 +341,7 @@ namespace Microsoft.Maui.Controls
 			}
 
 			_contentCache = null;
+			_preloadedHandler = null;
 		}
 
 		protected override void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string propertyName = null)
