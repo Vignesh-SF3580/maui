@@ -290,13 +290,6 @@ namespace Microsoft.Maui.Controls
 		protected virtual void OnAdd(int index, IView view)
 		{
 			NotifyHandler(nameof(ILayoutHandler.Add), index, view);
-			
-			// Ensure clipping is properly applied after adding children
-			// This helps with custom layouts where timing might be different
-			if (Handler != null && IsClippedToBounds)
-			{
-				Handler.UpdateValue(nameof(Maui.ILayout.ClipsToBounds));
-			}
 		}
 
 		/// <summary>
@@ -325,13 +318,6 @@ namespace Microsoft.Maui.Controls
 		protected virtual void OnInsert(int index, IView view)
 		{
 			NotifyHandler(nameof(ILayoutHandler.Insert), index, view);
-			
-			// Ensure clipping is properly applied after inserting children
-			// This helps with custom layouts where timing might be different
-			if (Handler != null && IsClippedToBounds)
-			{
-				Handler.UpdateValue(nameof(Maui.ILayout.ClipsToBounds));
-			}
 		}
 
 		/// <summary>

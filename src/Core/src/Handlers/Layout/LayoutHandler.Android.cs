@@ -18,8 +18,9 @@ namespace Microsoft.Maui.Handlers
 				CrossPlatformLayout = VirtualView
 			};
 
-			// Clipping behavior will be set by UpdateClipsToBounds in the property mapper
-			// Removing duplicate SetClipChildren call to avoid conflicts
+			// Apply the initial clipping state immediately to handle cases where
+			// IsClippedToBounds was set before the handler was attached
+			viewGroup.UpdateClipsToBounds(VirtualView);
 
 			return viewGroup;
 		}

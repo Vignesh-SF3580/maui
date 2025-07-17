@@ -14,10 +14,16 @@ namespace Microsoft.Maui.Handlers
 				throw new InvalidOperationException($"{nameof(VirtualView)} must be set to create a LayoutViewGroup");
 			}
 
-			return new()
+			var layoutView = new LayoutView()
 			{
 				CrossPlatformLayout = VirtualView
 			};
+
+			// Apply the initial clipping state immediately to handle cases where
+			// IsClippedToBounds was set before the handler was attached
+			layoutView.UpdateClipsToBounds(VirtualView);
+
+			return layoutView;
 		}
 
 		public override void SetVirtualView(IView view)
