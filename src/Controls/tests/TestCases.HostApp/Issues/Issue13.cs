@@ -1,7 +1,7 @@
 namespace Maui.Controls.Sample.Issues;
 
-[Issue(IssueTracker.Github, "99999", "IsClippedToBounds Property is not working for Android, MAC and IOS", PlatformAffected.iOS | PlatformAffected.Android | PlatformAffected.macOS)]
-public class Issue99999 : TestContentPage
+[Issue(IssueTracker.Github, 13, "IsClippedToBounds Property is not working for Android, MAC and IOS", PlatformAffected.iOS | PlatformAffected.Android | PlatformAffected.macOS)]
+public class Issue13 : TestContentPage
 {
 	const string ToggleClippingButton = "ToggleClippingButton";
 	const string ParentLayout = "ParentLayout";
