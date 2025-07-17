@@ -4,45 +4,59 @@ namespace Maui.Controls.Sample.Issues;
 public class Issue13 : TestContentPage
 {
 	const string ToggleClippingButton = "ToggleClippingButton";
-	const string ParentLayout = "ParentLayout";
+	const string ParentLayoutDirect = "ParentLayoutDirect";
+	const string ParentLayoutCustomAbsolute = "ParentLayoutCustomAbsolute";
+	const string ParentLayoutCustomStack = "ParentLayoutCustomStack";
 	const string ChildView = "ChildView";
 	const string StatusLabel = "StatusLabel";
 
-	private AbsoluteLayout? _parentLayout;
-	private ContentView? _childView;
+	private AbsoluteLayout? _directLayout;
+	private CustomAbsoluteLayout? _customAbsoluteLayout;
+	private CustomStackLayout? _customStackLayout;
 	private Label? _statusLabel;
 
 	protected override void Init()
 	{
-		// Create a parent layout with smaller bounds
-		_parentLayout = new AbsoluteLayout
+		// Test 1: Direct AbsoluteLayout usage (this should work)
+		_directLayout = new AbsoluteLayout
 		{
-			AutomationId = ParentLayout,
+			AutomationId = ParentLayoutDirect,
 			BackgroundColor = Colors.LightBlue,
 			WidthRequest = 300,
 			HeightRequest = 50,
-			IsClippedToBounds = true // Start with clipping enabled
+			IsClippedToBounds = true
 		};
 
-		// Create a child view that overflows the parent bounds
-		_childView = new ContentView
+		var directChild = CreateTestChild("Direct");
+		_directLayout.Children.Add(directChild);
+		AbsoluteLayout.SetLayoutBounds(directChild, new Rect(0, 0, 300, 100));
+
+		// Test 2: Custom AbsoluteLayout (this reproduces the issue)
+		_customAbsoluteLayout = new CustomAbsoluteLayout
 		{
-			AutomationId = ChildView,
-			BackgroundColor = Colors.Red,
+			AutomationId = ParentLayoutCustomAbsolute,
+			BackgroundColor = Colors.LightGreen,
 			WidthRequest = 300,
-			HeightRequest = 100, // Taller than parent to test overflow
-			Content = new Label
-			{
-				Text = ".NET Multi-platform App UI (.NET MAUI) lets you build native apps",
-				BackgroundColor = Colors.Yellow,
-				HorizontalOptions = LayoutOptions.Center,
-				VerticalOptions = LayoutOptions.Center
-			}
+			HeightRequest = 50,
+			IsClippedToBounds = true
 		};
 
-		// Add child to parent layout
-		_parentLayout.Children.Add(_childView);
-		AbsoluteLayout.SetLayoutBounds(_childView, new Rect(0, 0, 300, 100));
+		var customAbsoluteChild = CreateTestChild("Custom Absolute");
+		_customAbsoluteLayout.Children.Add(customAbsoluteChild);
+		AbsoluteLayout.SetLayoutBounds(customAbsoluteChild, new Rect(0, 0, 300, 100));
+
+		// Test 3: Custom StackLayout (this also reproduces the issue)
+		_customStackLayout = new CustomStackLayout
+		{
+			AutomationId = ParentLayoutCustomStack,
+			BackgroundColor = Colors.LightCoral,
+			WidthRequest = 300,
+			HeightRequest = 50,
+			IsClippedToBounds = true
+		};
+
+		var customStackChild = CreateTestChild("Custom Stack");
+		_customStackLayout.Children.Add(customStackChild);
 
 		_statusLabel = new Label
 		{
@@ -68,7 +82,7 @@ public class Issue13 : TestContentPage
 			{
 				new Label
 				{
-					Text = "IsClippedToBounds Test",
+					Text = "IsClippedToBounds Test - Custom Layout Issue",
 					FontSize = 18,
 					FontAttributes = FontAttributes.Bold
 				},
@@ -76,13 +90,28 @@ public class Issue13 : TestContentPage
 				toggleButton,
 				new Label
 				{
-					Text = "Parent Layout (300x50, LightBlue):",
-					FontSize = 14
+					Text = "1. Direct AbsoluteLayout (should work):",
+					FontSize = 14,
+					FontAttributes = FontAttributes.Bold
 				},
-				_parentLayout,
+				_directLayout,
 				new Label
 				{
-					Text = "The red child view (300x100) should overflow when clipping is OFF, and be clipped when clipping is ON.",
+					Text = "2. Custom AbsoluteLayout (reproduces issue):",
+					FontSize = 14,
+					FontAttributes = FontAttributes.Bold
+				},
+				_customAbsoluteLayout,
+				new Label
+				{
+					Text = "3. Custom StackLayout (reproduces issue):",
+					FontSize = 14,
+					FontAttributes = FontAttributes.Bold
+				},
+				_customStackLayout,
+				new Label
+				{
+					Text = "The red child views should overflow when clipping is OFF, and be clipped when clipping is ON. Custom layouts may not behave correctly.",
 					FontSize = 12,
 					TextColor = Colors.Gray
 				}
@@ -90,14 +119,48 @@ public class Issue13 : TestContentPage
 		};
 	}
 
+	private ContentView CreateTestChild(string labelText)
+	{
+		return new ContentView
+		{
+			BackgroundColor = Colors.Red,
+			WidthRequest = 300,
+			HeightRequest = 100, // Taller than parent to test overflow
+			Content = new Label
+			{
+				Text = $"{labelText}: .NET Multi-platform App UI (.NET MAUI) lets you build native apps",
+				BackgroundColor = Colors.Yellow,
+				HorizontalOptions = LayoutOptions.Center,
+				VerticalOptions = LayoutOptions.Center,
+				FontSize = 10
+			}
+		};
+	}
+
 	private void OnToggleClippingClicked(object? sender, EventArgs e)
 	{
-		if (_parentLayout != null && _statusLabel != null)
+		if (_directLayout != null && _customAbsoluteLayout != null && _customStackLayout != null && _statusLabel != null)
 		{
-			_parentLayout.IsClippedToBounds = !_parentLayout.IsClippedToBounds;
-			_statusLabel.Text = _parentLayout.IsClippedToBounds 
+			var newClippingValue = !_directLayout.IsClippedToBounds;
+			
+			_directLayout.IsClippedToBounds = newClippingValue;
+			_customAbsoluteLayout.IsClippedToBounds = newClippingValue;
+			_customStackLayout.IsClippedToBounds = newClippingValue;
+			
+			_statusLabel.Text = newClippingValue 
 				? "Clipping: ON (child should be clipped to parent bounds)" 
 				: "Clipping: OFF (child should overflow parent bounds)";
 		}
 	}
+}
+
+// Custom layouts to reproduce the issue
+public class CustomAbsoluteLayout : AbsoluteLayout
+{
+	// This inherits from AbsoluteLayout and should reproduce the issue
+}
+
+public class CustomStackLayout : StackLayout
+{
+	// This inherits from StackLayout and should reproduce the issue
 }
