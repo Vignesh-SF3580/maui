@@ -157,10 +157,56 @@ public class Issue13 : TestContentPage
 // Custom layouts to reproduce the issue
 public class CustomAbsoluteLayout : AbsoluteLayout
 {
-	// This inherits from AbsoluteLayout and should reproduce the issue
+	public CustomAbsoluteLayout()
+	{
+		// Ensure handler receives updates for property changes
+		this.HandlerChanged += OnHandlerChanged;
+		this.PropertyChanged += OnPropertyChanged;
+	}
+
+	private void OnHandlerChanged(object? sender, EventArgs e)
+	{
+		// When handler is attached, ensure current ClipsToBounds state is applied
+		if (this.Handler != null)
+		{
+			this.Handler.UpdateValue(nameof(Microsoft.Maui.ILayout.ClipsToBounds));
+		}
+	}
+
+	private void OnPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+	{
+		// Ensure IsClippedToBounds changes are immediately propagated to handler
+		if (e.PropertyName == nameof(IsClippedToBounds) && this.Handler != null)
+		{
+			this.Handler.UpdateValue(nameof(Microsoft.Maui.ILayout.ClipsToBounds));
+		}
+	}
 }
 
 public class CustomStackLayout : StackLayout
 {
-	// This inherits from StackLayout and should reproduce the issue
+	public CustomStackLayout()
+	{
+		// Ensure handler receives updates for property changes
+		this.HandlerChanged += OnHandlerChanged;
+		this.PropertyChanged += OnPropertyChanged;
+	}
+
+	private void OnHandlerChanged(object? sender, EventArgs e)
+	{
+		// When handler is attached, ensure current ClipsToBounds state is applied
+		if (this.Handler != null)
+		{
+			this.Handler.UpdateValue(nameof(Microsoft.Maui.ILayout.ClipsToBounds));
+		}
+	}
+
+	private void OnPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+	{
+		// Ensure IsClippedToBounds changes are immediately propagated to handler
+		if (e.PropertyName == nameof(IsClippedToBounds) && this.Handler != null)
+		{
+			this.Handler.UpdateValue(nameof(Microsoft.Maui.ILayout.ClipsToBounds));
+		}
+	}
 }

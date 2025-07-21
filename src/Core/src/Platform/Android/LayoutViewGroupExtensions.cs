@@ -9,6 +9,15 @@
 			
 			// Force a layout pass to ensure the clipping changes take effect
 			layoutViewGroup.RequestLayout();
+			
+			// Also invalidate the parent layout to ensure proper clipping hierarchy
+			if (layoutViewGroup.Parent is Android.Views.ViewGroup parent)
+			{
+				parent.RequestLayout();
+			}
+			
+			// Force immediate visual update
+			layoutViewGroup.Invalidate();
 		}
 	}
 }

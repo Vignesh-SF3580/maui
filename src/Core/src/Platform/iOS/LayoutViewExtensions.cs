@@ -6,8 +6,12 @@
 		{
 			layoutView.ClipsToBounds = layout.ClipsToBounds;
 			
-			// Force a visual update by marking the view as needing display
+			// Try a more aggressive approach to ensure clipping changes take effect
 			layoutView.SetNeedsDisplay();
+			
+			// Force the superview to re-layout as well since clipping affects child positioning
+			layoutView.Superview?.SetNeedsLayout();
+			layoutView.Superview?.LayoutIfNeeded();
 		}
 	}
 }
