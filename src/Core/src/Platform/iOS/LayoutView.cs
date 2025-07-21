@@ -50,6 +50,19 @@ namespace Microsoft.Maui.Platform
 
 		internal bool UserInteractionEnabledOverride => _userInteractionEnabled;
 
+		public override void LayoutSubviews()
+		{
+			base.LayoutSubviews();
+
+			// Re-apply clipping state after layout to ensure it's correctly applied
+			// This is especially important for custom layouts where the timing of property
+			// setting vs handler attachment vs layout operations can vary
+			if (CrossPlatformLayout is ILayout layout)
+			{
+				this.UpdateClipsToBounds(layout);
+			}
+		}
+
 		public override bool UserInteractionEnabled
 		{
 			get => base.UserInteractionEnabled;

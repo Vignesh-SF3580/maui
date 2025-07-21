@@ -110,15 +110,39 @@ namespace Microsoft.Maui.Platform
 
 			CrossPlatformArrange(destination);
 
-			if (ClipsToBounds)
+			// Re-apply clipping state after layout to ensure it's correctly applied
+			// This is especially important for custom layouts where the timing of property
+			// setting vs handler attachment vs layout operations can vary
+			if (CrossPlatformLayout is ILayout layout)
 			{
-				_clipRect.Right = r - l;
-				_clipRect.Bottom = b - t;
-				ClipBounds = _clipRect;
+				// Update clipping state using the same logic as the extension method
+				ClipsToBounds = layout.ClipsToBounds;
+				SetClipChildren(layout.ClipsToBounds);
+
+				if (ClipsToBounds)
+				{
+					_clipRect.Right = r - l;
+					_clipRect.Bottom = b - t;
+					ClipBounds = _clipRect;
+				}
+				else
+				{
+					ClipBounds = null;
+				}
 			}
 			else
 			{
-				ClipBounds = null;
+				// Fallback to existing logic if CrossPlatformLayout is not available
+				if (ClipsToBounds)
+				{
+					_clipRect.Right = r - l;
+					_clipRect.Bottom = b - t;
+					ClipBounds = _clipRect;
+				}
+				else
+				{
+					ClipBounds = null;
+				}
 			}
 		}
 

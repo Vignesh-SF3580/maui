@@ -17,8 +17,9 @@ namespace Microsoft.Maui.TestCases.Tests.Issues
 			// Wait for the page to load
 			App.WaitForElement("StatusLabel");
 			App.WaitForElement("ToggleClippingButton");
-			App.WaitForElement("ParentLayout");
-			App.WaitForElement("ChildView");
+			App.WaitForElement("ParentLayoutDirect");
+			App.WaitForElement("ParentLayoutCustomAbsolute");
+			App.WaitForElement("ParentLayoutCustomStack");
 
 			// Verify initial state (clipping should be ON)
 			var statusLabel = App.WaitForElement("StatusLabel");
