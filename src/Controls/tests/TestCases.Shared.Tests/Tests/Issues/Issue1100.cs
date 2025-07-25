@@ -18,6 +18,7 @@ public class Issue1100 : _IssuesUITest
 		Assert.That(App.WaitForElement("LabelDateOnly").GetText(), Is.EqualTo("DateOnly Value: 2025-07-28"));
 		Assert.That(App.WaitForElement("LabelDateTime").GetText(), Is.EqualTo("DateTime Value: 2025-07-28"));
 		Assert.That(App.WaitForElement("LabelString").GetText(), Is.EqualTo("String Value: 2025-07-28"));
+		Assert.That(App.WaitForElement("LabelMinMax").GetText(), Is.EqualTo("MinMax DatePicker: Min=2025-07-01, Max=2025-08-31"));
 	}
 
 	[Test]

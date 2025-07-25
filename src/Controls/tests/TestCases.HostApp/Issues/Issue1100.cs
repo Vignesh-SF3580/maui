@@ -37,10 +37,14 @@ public class Issue1100 : ContentPage
         timePickerString.SetBinding(TimePicker.TimeProperty, "TimeWithString");
         var labelTimeString = new Label { AutomationId = "LabelTimeString" };
 
+        var datePickerMinMax = new DatePicker { AutomationId = "TestDatePickerWithMinMax" };
+        datePickerMinMax.SetBinding(DatePicker.DateProperty, "DateWithDateTime");
+        datePickerMinMax.SetBinding(DatePicker.MinimumDateProperty, "MinDateOnly");
+        datePickerMinMax.SetBinding(DatePicker.MaximumDateProperty, "MaxDateOnly");
+        var labelMinMax = new Label { AutomationId = "LabelMinMax" };
+
         Content = new VerticalStackLayout
         {
-            Spacing = 20,
-            Padding = 20,
             Children =
             {
                 datePickerDateOnly, labelDateOnly,
@@ -48,7 +52,8 @@ public class Issue1100 : ContentPage
                 datePickerString, labelString,
                 timePickerTimeOnly, labelTimeOnly,
                 timePickerTimeSpan, labelTimeSpan,
-                timePickerString, labelTimeString
+                timePickerString, labelTimeString,
+                datePickerMinMax, labelMinMax
             }
         };
 
@@ -58,6 +63,7 @@ public class Issue1100 : ContentPage
         labelTimeOnly.Text = $"TimeOnly Value: {timePickerTimeOnly.Time:hh\\:mm\\:ss}";
         labelTimeSpan.Text = $"TimeSpan Value: {timePickerTimeSpan.Time:hh\\:mm\\:ss}";
         labelTimeString.Text = $"Time String Value: {timePickerString.Time:hh\\:mm\\:ss}";
+        labelMinMax.Text = $"MinMax DatePicker: Min={datePickerMinMax.MinimumDate:yyyy-MM-dd}, Max={datePickerMinMax.MaximumDate:yyyy-MM-dd}";
     }
 }
 
@@ -69,6 +75,8 @@ public class Issue1100ViewModel : INotifyPropertyChanged
     public DateTime DateWithDateTime { get; set; } = new(2025, 7, 28, 10, 30, 0);
     public string DateWithString { get; set; } = "2025-07-28";
     public string TimeWithString { get; set; } = "10:30:00";
+    public DateOnly MinDateOnly { get; set; } = new(2025, 7, 1);
+    public DateOnly MaxDateOnly { get; set; } = new(2025, 8, 31);
 
     public event PropertyChangedEventHandler PropertyChanged;
     protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null) =>
