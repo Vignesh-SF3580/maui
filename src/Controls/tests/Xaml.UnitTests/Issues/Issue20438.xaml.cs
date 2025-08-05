@@ -47,10 +47,10 @@ public partial class Issue20438 : ContentPage
     }
 }
 
-public class CustomDatePicker : DatePicker
+public class Issue20438CustomDatePicker : DatePicker
 {
     public static readonly BindableProperty NonNullableDateTimeProperty =
-        BindableProperty.Create(nameof(NonNullableDateTime), typeof(DateTime), typeof(CustomDatePicker), default(DateTime));
+        BindableProperty.Create(nameof(NonNullableDateTime), typeof(DateTime), typeof(Issue20438CustomDatePicker), default(DateTime));
 
     [TypeConverter(typeof(DateTimeTypeConverter))]
     public DateTime NonNullableDateTime
@@ -60,10 +60,10 @@ public class CustomDatePicker : DatePicker
     }
 }
 
-public class CustomTimePicker : TimePicker
+public class Issue20438CustomTimePicker : TimePicker
 {
     public static readonly BindableProperty NonNullableTimeSpanProperty =
-        BindableProperty.Create(nameof(NonNullableTimeSpan), typeof(TimeSpan), typeof(CustomTimePicker), default(TimeSpan));
+        BindableProperty.Create(nameof(NonNullableTimeSpan), typeof(TimeSpan), typeof(Issue20438CustomTimePicker), default(TimeSpan));
 
     [TypeConverter(typeof(TimeSpanTypeConverter))]
     public TimeSpan NonNullableTimeSpan

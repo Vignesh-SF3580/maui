@@ -12,9 +12,9 @@
                     Date="{Binding SelectedDate}"/>
         <TimePicker x:Name="timePicker"
                     Time="{Binding SelectedTime}"/>
-        <local:CustomDatePicker x:Name="customDatePicker"
-                                NonNullableDateTime="{Binding SelectedDate}"/>
-        <local:CustomTimePicker x:Name="customTimePicker"
-                                NonNullableTimeSpan="{Binding SelectedTime}"/>
+        <local:Issue20438CustomDatePicker x:Name="customDatePicker"
+                                          NonNullableDateTime="{Binding SelectedDate}"/>
+        <local:Issue20438CustomTimePicker x:Name="customTimePicker"
+                                          NonNullableTimeSpan="{Binding SelectedTime}"/>
     </StackLayout>
 </ContentPage>
