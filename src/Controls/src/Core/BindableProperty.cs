@@ -233,11 +233,6 @@ namespace Microsoft.Maui.Controls
 
 			if (KnownTypeConverters.TryGetValue(targetType, out TypeConverter typeConverterTo) && typeConverterTo.CanConvertFrom(valueType))
 			{
-				value = typeConverterTo.ConvertFrom(value);
-				return true;
-			}
-			if (KnownTypeConverters.TryGetValue(targetType, out typeConverterTo) && typeConverterTo.CanConvertFrom(typeof(string)))
-			{
 				value = typeConverterTo.ConvertFromInvariantString(value.ToString());
 				return true;
 			}
