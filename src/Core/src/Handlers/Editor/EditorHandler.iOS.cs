@@ -217,7 +217,7 @@ namespace Microsoft.Maui.Handlers
 			void OnStarted(object? sender, EventArgs eventArgs)
 			{
 				if (VirtualView is IEditor virtualView)
-					virtualView.IsFocused = true;
+					ViewHandler.SetViewFocused(virtualView);
 			}
 
 			void OnEnded(object? sender, EventArgs eventArgs)
