@@ -164,7 +164,8 @@ namespace Microsoft.Maui.Controls.Compatibility
 		{
 			if (bindableObject is IView view)
 			{
-				view.Handler?.UpdateValue(nameof(Maui.ILayout.ClipsToBounds));
+				// Use the same property name as the handler mapper for consistency
+				view.Handler?.UpdateValue("ClipsToBounds");
 			}
 		}
 
