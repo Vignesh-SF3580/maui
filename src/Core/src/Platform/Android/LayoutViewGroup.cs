@@ -45,7 +45,26 @@ namespace Microsoft.Maui.Platform
 			_context = context;
 		}
 
-		public bool ClipsToBounds { get; set; }
+		private bool _clipsToBounds = true;
+		
+		public bool ClipsToBounds 
+		{ 
+			get => _clipsToBounds;
+			set 
+			{
+				if (_clipsToBounds != value)
+				{
+					_clipsToBounds = value;
+					SetClipChildren(value);
+					SetClipToPadding(value);
+					
+					if (!value)
+					{
+						ClipBounds = null;
+					}
+				}
+			}
+		}
 
 		public ICrossPlatformLayout? CrossPlatformLayout
 		{
@@ -110,6 +129,7 @@ namespace Microsoft.Maui.Platform
 
 			CrossPlatformArrange(destination);
 
+			// Only apply ClipBounds if clipping is enabled
 			if (ClipsToBounds)
 			{
 				_clipRect.Right = r - l;
