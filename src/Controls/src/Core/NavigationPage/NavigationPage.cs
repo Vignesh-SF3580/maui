@@ -805,7 +805,7 @@ namespace Microsoft.Maui.Controls
 						Owner.SendNavigating(currentPage);
 						Owner.FireDisappearing(currentPage);
 						Owner.RemoveFromInnerChildren(currentPage);
-						Owner.CurrentPage = newCurrentPage;
+						
 						if (currentPage.TitleView != null)
 						{
 							currentPage.RemoveLogicalChild(currentPage.TitleView);
@@ -814,6 +814,7 @@ namespace Microsoft.Maui.Controls
 					() =>
 					{
 						Owner.FireAppearing(newCurrentPage);
+						Owner.CurrentPage = newCurrentPage;
 					},
 					() =>
 					{
