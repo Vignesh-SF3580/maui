@@ -13,6 +13,9 @@ public partial class AppShell : Shell
 #if (IncludeSampleContent)
 		var currentTheme = Application.Current!.RequestedTheme;		
 		ThemeSegmentedControl.SelectedIndex = currentTheme == AppTheme.Light ? 0 : 1;
+#if ANDROID || WINDOWS
+		SemanticProperties.SetDescription(ThemeSegmentedControl, "Theme selection");
+#endif
 #endif
 	}
 #if (IncludeSampleContent)
