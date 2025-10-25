@@ -184,7 +184,7 @@ namespace Microsoft.Maui.Handlers
 					{
 						platformView.UpdateCursorPosition(virtualView);
 					}
-					virtualView.IsFocused = true;
+					ViewHandler.SetViewFocused(virtualView);
 				}
 			}
 
