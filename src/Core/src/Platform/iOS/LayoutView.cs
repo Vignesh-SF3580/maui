@@ -50,6 +50,11 @@ namespace Microsoft.Maui.Platform
 
 		internal bool UserInteractionEnabledOverride => _userInteractionEnabled;
 
+		public override void LayoutSubviews()
+		{
+			base.LayoutSubviews();
+		}
+
 		public override bool UserInteractionEnabled
 		{
 			get => base.UserInteractionEnabled;
