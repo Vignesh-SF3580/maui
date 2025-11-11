@@ -42,6 +42,7 @@ namespace Microsoft.Maui.Controls.Handlers.Items
 			}
 
 			itemsView.RemoveLogicalChild(View);
+			View?.DisconnectHandlers();
 		}
 
 		public void Bind(object itemBindingContext, ItemsView itemsView,

@@ -79,6 +79,7 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 				//view.MeasureInvalidated -= MeasureInvalidated;
 				view.BindingContext = null;
 				(view.Parent as ItemsView)?.RemoveLogicalChild(view);
+				view?.DisconnectHandlers();
 			}
 		}
 
