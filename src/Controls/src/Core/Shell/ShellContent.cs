@@ -261,6 +261,11 @@ namespace Microsoft.Maui.Controls
 			{
 				_contentCache.Unloaded -= OnPageUnloaded;
 				RemoveLogicalChild(_contentCache);
+				
+				// Clear cached Android platform view to prevent memory leaks
+#if ANDROID
+				Platform.Compatibility.ShellFragmentContainer.ClearCachedView(_contentCache);
+#endif
 			}
 
 			_contentCache = null;
