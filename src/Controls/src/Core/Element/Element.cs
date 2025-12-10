@@ -830,6 +830,18 @@ namespace Microsoft.Maui.Controls
 				OnResourceChanged(property, value, specificity);
 		}
 
+		internal bool HasDynamicResources(HashSet<string> resourceKeys)
+		{
+			if (_dynamicResources == null)
+				return false;
+
+			foreach (var kvp in _dynamicResources)
+			{
+				if (resourceKeys.Contains(kvp.Value.Item1))
+					return true;
+			}
+			return false;
+		}
 		internal event EventHandler ParentSet;
 
 		internal virtual void SetChildInheritedBindingContext(Element child, object context)

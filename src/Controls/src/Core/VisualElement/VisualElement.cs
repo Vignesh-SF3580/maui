@@ -1605,6 +1605,11 @@ namespace Microsoft.Maui.Controls
 			if (!((IResourcesProvider)this).IsResourcesCreated || Resources.Count == 0)
 			{
 				base.OnParentResourcesChanged(values);
+
+				// Only process visual states if this element has them
+				if (IsSet(VisualStateManager.VisualStateGroupsProperty))
+					VisualStateManager.OnResourcesChanged(this, values);
+
 				return;
 			}
 

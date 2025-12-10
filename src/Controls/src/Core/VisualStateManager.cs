@@ -64,6 +64,11 @@ namespace Microsoft.Maui.Controls
 		/// <include file="../../docs/Microsoft.Maui.Controls/VisualStateManager.xml" path="//Member[@MemberName='GoToState']/Docs/*" />
 		public static bool GoToState(VisualElement visualElement, string name)
 		{
+			return GoToState(visualElement, name, false);
+		}
+
+		internal static bool GoToState(VisualElement visualElement, string name, bool forceRefresh)
+		{
 			var context = visualElement.GetContext(VisualStateGroupsProperty);
 			if (context is null)
 			{
@@ -88,7 +93,7 @@ namespace Microsoft.Maui.Controls
 
 			foreach (VisualStateGroup group in groups)
 			{
-				if (group.CurrentState?.Name == name)
+				if (group.CurrentState?.Name == name && !forceRefresh)
 				{
 					// We're already in the target state; nothing else to do
 					return true;
@@ -147,8 +152,61 @@ namespace Microsoft.Maui.Controls
 				group.UpdateStateTriggers();
 			}
 		}
-	}
 
+		internal static bool StateUsesDynamicResources(VisualState state, HashSet<string> changedKeys)
+		{
+			foreach (var setter in state.Setters)
+			{
+				if (setter.Value is Internals.DynamicResource dynamicResource && changedKeys.Contains(dynamicResource.Key))
+					return true;
+
+				if (setter.Value is Element element && element.HasDynamicResources(changedKeys))
+					return true;
+			}
+			return false;
+		}
+
+		internal static void OnResourcesChanged(VisualElement visualElement, IEnumerable<KeyValuePair<string, object>> changedResources)
+		{
+			if (visualElement == null || changedResources == null)
+				return;
+
+			var context = visualElement.GetContext(VisualStateGroupsProperty);
+			if (context is null)
+				return;
+
+			var vsgSpecificityValue = context.Values.GetSpecificityAndValue();
+			var groups = (VisualStateGroupList)vsgSpecificityValue.Value;
+			if (groups?.IsDefault != false)
+				return;
+
+			// Quick check: if no groups have current state, nothing to refresh
+			VisualStateGroup activeGroup = null;
+			foreach (VisualStateGroup group in groups)
+			{
+				if (group.CurrentState != null)
+				{
+					activeGroup = group;
+					break;
+				}
+			}
+
+			if (activeGroup == null)
+				return;
+
+			// Build HashSet only if we have active states to check
+			var changedKeys = new HashSet<string>(StringComparer.Ordinal);
+			foreach (var kvp in changedResources)
+				changedKeys.Add(kvp.Key);
+
+			// Now check all groups and refresh if needed
+			foreach (VisualStateGroup group in groups)
+			{
+				if (group.CurrentState != null && StateUsesDynamicResources(group.CurrentState, changedKeys))
+					GoToState(visualElement, group.CurrentState.Name, true);
+			}
+		}
+	}
 	/// <include file="../../docs/Microsoft.Maui.Controls/VisualStateGroupList.xml" path="Type[@FullName='Microsoft.Maui.Controls.VisualStateGroupList']/Docs/*" />
 	public class VisualStateGroupList : IList<VisualStateGroup>
 	{
