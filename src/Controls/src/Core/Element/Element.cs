@@ -762,6 +762,12 @@ namespace Microsoft.Maui.Controls
 		internal virtual void OnParentResourcesChanged(IEnumerable<KeyValuePair<string, object>> values)
 		{
 			OnResourcesChanged(values);
+
+			// Refresh visual states when resources change
+			if (this is VisualElement visualElement)
+			{
+				VisualStateManager.RefreshActiveStates(visualElement);
+			}
 		}
 
 		internal override void OnRemoveDynamicResource(BindableProperty property)

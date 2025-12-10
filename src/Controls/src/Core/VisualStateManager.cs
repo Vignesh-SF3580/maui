@@ -61,8 +61,12 @@ namespace Microsoft.Maui.Controls
 		public static void SetVisualStateGroups(VisualElement visualElement, VisualStateGroupList value)
 			=> visualElement.SetValue(VisualStateGroupsProperty, value);
 
-		/// <include file="../../docs/Microsoft.Maui.Controls/VisualStateManager.xml" path="//Member[@MemberName='GoToState']/Docs/*" />
 		public static bool GoToState(VisualElement visualElement, string name)
+			=> GoToState(visualElement, name, false);
+
+		/// <include file="../../docs/Microsoft.Maui.Controls/VisualStateManager.xml" path="//Member[@MemberName='GoToState']/Docs/*" />
+		/// <param name="refreshState">If true, forces a refresh of the visual state even if already in the target state</param>
+		internal static bool GoToState(VisualElement visualElement, string name, bool refreshState)
 		{
 			var context = visualElement.GetContext(VisualStateGroupsProperty);
 			if (context is null)
@@ -89,6 +93,7 @@ namespace Microsoft.Maui.Controls
 			foreach (VisualStateGroup group in groups)
 			{
 				if (group.CurrentState?.Name == name)
+				if (group.CurrentState?.Name == name && !refreshState)
 				{
 					// We're already in the target state; nothing else to do
 					return true;
@@ -145,6 +150,24 @@ namespace Microsoft.Maui.Controls
 			{
 				group.VisualElement = visualElement;
 				group.UpdateStateTriggers();
+			}
+		}
+
+		internal static void RefreshActiveStates(VisualElement visualElement)
+		{
+			if (visualElement == null || !visualElement.IsSet(VisualStateGroupsProperty))
+				return;
+
+			var groups = GetVisualStateGroups(visualElement);
+			if (groups == null)
+				return;
+
+			foreach (VisualStateGroup group in groups)
+			{
+				if (group.CurrentState != null)
+				{
+					GoToState(visualElement, group.CurrentState.Name, true);
+				}
 			}
 		}
 	}
