@@ -92,7 +92,6 @@ namespace Microsoft.Maui.Controls
 
 			foreach (VisualStateGroup group in groups)
 			{
-				if (group.CurrentState?.Name == name)
 				if (group.CurrentState?.Name == name && !refreshState)
 				{
 					// We're already in the target state; nothing else to do
@@ -153,7 +152,7 @@ namespace Microsoft.Maui.Controls
 			}
 		}
 
-		internal static void RefreshActiveStates(VisualElement visualElement)
+		internal static void ReapplyVisualStates(VisualElement visualElement)
 		{
 			if (visualElement == null || !visualElement.IsSet(VisualStateGroupsProperty))
 				return;

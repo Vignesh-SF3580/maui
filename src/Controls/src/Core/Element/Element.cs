@@ -766,7 +766,7 @@ namespace Microsoft.Maui.Controls
 			// Refresh visual states when resources change
 			if (this is VisualElement visualElement)
 			{
-				VisualStateManager.RefreshActiveStates(visualElement);
+				VisualStateManager.ReapplyVisualStates(visualElement);
 			}
 		}
 
