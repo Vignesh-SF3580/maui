@@ -739,7 +739,40 @@ namespace Microsoft.Maui.Controls.Platform
 				return null;
 			}
 
-			return result.Value.ToPoint();
+			// Account for Translation transformations applied to the view hierarchy
+			var (translationX, translationY) = GetAccumulatedTranslationOffset(relativeTo);
+			var adjustedX = result.Value.X - translationX;
+			var adjustedY = result.Value.Y - translationY;
+
+			return new Point(adjustedX, adjustedY);
+		}
+
+		/// <summary>
+		/// Calculates the accumulated translation offset from an element and all its parent elements.
+		/// Returns the offset in device-independent units to be subtracted from tap coordinates.
+		/// </summary>
+		private static (double X, double Y) GetAccumulatedTranslationOffset(IElement? element)
+		{
+			if (element == null)
+				return (0, 0);
+
+			double totalX = 0;
+			double totalY = 0;
+
+			// Walk up the visual tree accumulating translations
+			var current = element;
+			while (current != null)
+			{
+				if (current is VisualElement visualElement)
+				{
+					totalX += visualElement.TranslationX;
+					totalY += visualElement.TranslationY;
+				}
+
+				current = (current as VisualElement)?.Parent;
+			}
+
+			return (totalX, totalY);
 		}
 
 		void OnTap(object sender, RoutedEventArgs e)
