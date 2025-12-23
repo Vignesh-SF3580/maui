@@ -341,6 +341,7 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 
 			CollectionView.ReloadData();
 			CollectionView.CollectionViewLayout.InvalidateLayout();
+			CollectionView.LayoutIfNeeded();
 		}
 
 		public class ShellSectionHeaderCell : UICollectionViewCell
