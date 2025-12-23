@@ -194,6 +194,10 @@ namespace Microsoft.Maui.Handlers
 			{
 				VirtualView?.Released();
 				VirtualView?.Clicked();
+				
+				// Handle focus event following Editor/Entry pattern with proper focus management
+				if (VirtualView is IView view)
+					ViewHandler.SetViewFocused(view);
 			}
 
 			void OnButtonTouchUpOutside(object? sender, EventArgs e)
