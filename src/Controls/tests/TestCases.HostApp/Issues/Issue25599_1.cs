@@ -97,13 +97,13 @@ public class Issue25599_1MainPage : ContentPage
 		}
 	}
 
-	private void OnNavigating(object sender, ShellNavigatingEventArgs e)
+	void OnNavigating(object sender, ShellNavigatingEventArgs e)
 	{
 		navigatingCurrentLabel.Text = $"{e.Current?.Location}";
 		navigatingTargetLabel.Text = $"{e.Target?.Location}";
 	}
 
-	private void OnNavigated(object sender, ShellNavigatedEventArgs e)
+	void OnNavigated(object sender, ShellNavigatedEventArgs e)
 	{
 		navigatedLabel.Text = $"Navigated:\nPrevious: {e.Previous?.Location}\nCurrent: {e.Current?.Location}";
 	}
