@@ -1232,7 +1232,12 @@ namespace Microsoft.Maui.Controls
 
 			((ShellElementCollection)Items).VisibleItemsChangedInternal += async (s, e) =>
 			{
-				await SetCurrentItem();
+				// If CurrentItem is not set at the sample level, the first item is selected via SetCurrentItem.
+				// When CurrentItem is set, navigation occurs through OnCurrentItemChanging, so SetCurrentItem() is skipped.
+				if (CurrentItem is null)
+				{
+					await SetCurrentItem();
+				}
 
 				SendStructureChanged();
 				SendFlyoutItemsChanged();
@@ -1734,10 +1739,6 @@ namespace Microsoft.Maui.Controls
 		{
 			var shell = (Shell)bindable;
 			var shellItem = (ShellItem)newValue;
-
-			if (!shell.Items.Contains(shellItem))
-				shell.Items.Add(shellItem);
-
 			var shellSection = shellItem.CurrentItem;
 			var shellContent = shellSection.CurrentItem;
 			var stack = shellSection.Stack;
