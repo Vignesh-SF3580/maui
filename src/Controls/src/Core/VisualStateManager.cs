@@ -13,6 +13,10 @@ namespace Microsoft.Maui.Controls
 	/// </summary>
 	public static class VisualStateManager
 	{
+		// VSM uses FromHandler specificity to override template values (ManualValueSetter).
+		// This is a semantic compromise until a dedicated SetterSpecificity.FromVisualState exists.
+		static readonly SetterSpecificity VisualStateOverrideSpecificity = SetterSpecificity.FromHandler;
+
 		public class CommonStates
 		{
 			public const string Normal = "Normal";
@@ -117,6 +121,8 @@ namespace Microsoft.Maui.Controls
 				{
 					foreach (Setter setter in group.CurrentState.Setters)
 					{
+						// Try both specificity levels (override and base) to ensure cleanup works correctly
+						setter.UnApply(visualElement, VisualStateOverrideSpecificity);
 						setter.UnApply(visualElement, specificity);
 					}
 				}
@@ -127,7 +133,19 @@ namespace Microsoft.Maui.Controls
 				// Apply the setters from the new state
 				foreach (Setter setter in target.Setters)
 				{
-					setter.Apply(visualElement, specificity);
+					if (setter.Property == null)
+						continue;
+
+					// Check existing specificity to determine if we need override level (see issue #20291)
+					var propertyContext = visualElement.GetContext(setter.Property);
+					var existingSpecificity = propertyContext?.Values.GetSpecificityAndValue().Key ?? SetterSpecificity.DefaultValue;
+
+					// Use override specificity for template values and other high-specificity setters
+					var setterSpecificity = existingSpecificity >= SetterSpecificity.ManualValueSetter
+					? VisualStateOverrideSpecificity
+					: specificity;
+
+					setter.Apply(visualElement, setterSpecificity);
 				}
 
 				return true;
