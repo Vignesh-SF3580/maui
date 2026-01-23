@@ -95,7 +95,10 @@ namespace Microsoft.Maui.Controls
 			var vsgSpecificity = vsgSpecificityValue.Key;
 			groups.Specificity = vsgSpecificity;
 
-			var specificity = vsgSpecificity.CopyStyle(1, 0, 0, 0);
+			// Use Fromhandler specificity for VSM setters to ensure they override other setters
+			// This is the highest specificity level, ensuring VSM state changes take effect
+			// When UnApply is called, the original style value will be present underneath
+			var specificity = SetterSpecificity.FromHandler;
 
 			foreach (VisualStateGroup group in groups)
 			{
