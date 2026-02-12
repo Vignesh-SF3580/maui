@@ -283,17 +283,17 @@ namespace Microsoft.Maui.Media
 					{
 						using var originalStream = await result.OpenReadAsync();
 						using var rotatedStream = await ImageProcessor.RotateImageAsync(originalStream, result.FileName);
-						
+
 						// Create a temp file for the rotated image
 						var tempFileName = $"{Guid.NewGuid()}{Path.GetExtension(result.FileName)}";
 						var tempFilePath = Path.Combine(Path.GetTempPath(), tempFileName);
-						
+
 						using (var fileStream = File.Create(tempFilePath))
 						{
 							rotatedStream.Position = 0;
 							await rotatedStream.CopyToAsync(fileStream);
 						}
-						
+
 						var rotatedResult = new FileResult(tempFilePath)
 						{
 							FileName = result.FileName,
@@ -316,7 +316,7 @@ namespace Microsoft.Maui.Media
 				var compressedResults = new List<FileResult>();
 				foreach (var result in fileResults)
 				{
-					var compressedResult = await CompressedUIImageFileResult.CreateCompressedFromFileResult(result, options?.MaximumWidth, options?.MaximumHeight, options?.CompressionQuality ?? 100, options?.RotateImage ?? false, options?.PreserveMetaData ?? true);
+					var compressedResult = new PHPickerProcessedFileResult(result, options?.MaximumWidth, options?.MaximumHeight, options?.CompressionQuality ?? 100, options?.RotateImage ?? false, options?.PreserveMetaData ?? true);
 					compressedResults.Add(compressedResult);
 				}
 				return compressedResults;
@@ -365,7 +365,7 @@ namespace Microsoft.Maui.Media
 					if (!assetUrl.Scheme.Equals("assets-library", StringComparison.OrdinalIgnoreCase))
 					{
 						var docResult = new UIDocumentFileResult(assetUrl);
-						
+
 						// Apply rotation if needed and this is a photo
 						if (ImageProcessor.IsRotationNeeded(options) && IsImageFile(docResult.FileName))
 						{
@@ -380,7 +380,7 @@ namespace Microsoft.Maui.Media
 								// If rotation fails, continue with the original file
 							}
 						}
-						
+
 						return docResult;
 					}
 
@@ -411,7 +411,7 @@ namespace Microsoft.Maui.Media
 					{
 						img = img.NormalizeOrientation();
 					}
-					
+
 					return new CompressedUIImageFileResult(img, null, options?.MaximumWidth, options?.MaximumHeight, options?.CompressionQuality ?? 100);
 				}
 			}
@@ -423,7 +423,7 @@ namespace Microsoft.Maui.Media
 
 			string originalFilename = PHAssetResource.GetAssetResources(phAsset).FirstOrDefault()?.OriginalFilename;
 			var assetResult = new PHAssetFileResult(assetUrl, phAsset, originalFilename);
-			
+
 			// Apply rotation if needed and this is a photo
 			if (ImageProcessor.IsRotationNeeded(options) && IsImageFile(assetResult.FileName))
 			{
@@ -438,41 +438,41 @@ namespace Microsoft.Maui.Media
 					// If rotation fails, continue with the original file
 				}
 			}
-			
+
 			return assetResult;
 		}
-		
+
 		// Helper method to check if a file is an image based on extension
 		static bool IsImageFile(string fileName)
 		{
 			if (string.IsNullOrEmpty(fileName))
 				return false;
-				
+
 			var ext = Path.GetExtension(fileName)?.ToLowerInvariant();
 			return ext == ".jpg" || ext == ".jpeg" || ext == ".png" || ext == ".heic" || ext == ".heif";
 		}
-		
+
 		// Helper method to rotate an image file
 		static async Task<FileResult> RotateImageFile(FileResult original)
 		{
 			if (original == null)
 				return null;
-				
+
 			try
 			{
 				using var originalStream = await original.OpenReadAsync();
 				using var rotatedStream = await ImageProcessor.RotateImageAsync(originalStream, original.FileName);
-				
+
 				// Create a temp file for the rotated image
 				var tempFileName = $"{Guid.NewGuid()}{Path.GetExtension(original.FileName)}";
 				var tempFilePath = Path.Combine(Path.GetTempPath(), tempFileName);
-				
+
 				using (var fileStream = File.Create(tempFilePath))
 				{
 					rotatedStream.Position = 0;
 					await rotatedStream.CopyToAsync(fileStream);
 				}
-				
+
 				return new FileResult(tempFilePath, original.FileName);
 			}
 			catch (Exception ex)
@@ -481,7 +481,7 @@ namespace Microsoft.Maui.Media
 				return original;
 			}
 		}
-		
+
 		class PhotoPickerDelegate : UIImagePickerControllerDelegate
 		{
 			public Action<NSDictionary> CompletedHandler { get; set; }
@@ -737,6 +737,63 @@ namespace Microsoft.Maui.Media
 		{
 			Dispose(true);
 			GC.SuppressFinalize(this);
+		}
+	}
+
+	/// <summary>
+	/// Wrapper that applies compression lazily when the stream is opened.
+	/// This avoids iOS resource limits when processing multiple photos.
+	/// </summary>
+	class PHPickerProcessedFileResult : FileResult
+	{
+		readonly FileResult _originalResult;
+		readonly int? _maximumWidth;
+		readonly int? _maximumHeight;
+		readonly int _compressionQuality;
+		readonly bool _rotateImage;
+		readonly bool _preserveMetaData;
+
+		internal PHPickerProcessedFileResult(FileResult originalResult, int? maximumWidth, int? maximumHeight, int compressionQuality, bool rotateImage, bool preserveMetaData)
+		{
+			_originalResult = originalResult;
+			_maximumWidth = maximumWidth;
+			_maximumHeight = maximumHeight;
+			_compressionQuality = compressionQuality;
+			_rotateImage = rotateImage;
+			_preserveMetaData = preserveMetaData;
+
+			// Copy metadata from original
+			FileName = originalResult.FileName;
+			FullPath = originalResult.FullPath;
+			ContentType = originalResult.ContentType;
+		}
+
+		internal override async Task<Stream> PlatformOpenReadAsync()
+		{
+			// Load the original stream
+			using var originalStream = await _originalResult.OpenReadAsync();
+
+			// Apply processing (compression/resizing)
+			using var processedStream = await ImageProcessor.ProcessImageAsync(
+				originalStream,
+				_maximumWidth,
+				_maximumHeight,
+				_compressionQuality,
+				_originalResult.FileName,
+				_rotateImage,
+				_preserveMetaData);
+
+			// If processing failed, return original stream
+			if (processedStream == null)
+			{
+				return await _originalResult.OpenReadAsync();
+			}
+
+			// Read processed stream into memory and return
+			var memoryStream = new MemoryStream();
+			await processedStream.CopyToAsync(memoryStream);
+			memoryStream.Position = 0;
+			return memoryStream;
 		}
 	}
 }
