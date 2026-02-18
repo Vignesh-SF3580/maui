@@ -297,8 +297,9 @@ public partial class TestPage : ContentPage
 	[Fact]
 	public void OnPlatformWithProtectedCtorTypeNoDefaultNoMatchingPlatform()
 	{
-		// When there's no Default and no matching platform, and the type has protected ctor,
-		// SourceGen should generate default(T) instead of trying to instantiate the type.
+		// When there's no Default and no matching platform in a Children collection,
+		// SourceGen should remove the OnPlatform node entirely to prevent null references.
+		// This differs from ResourceDictionary entries (with x:Key) which generate default(T).
 		var xaml =
 """
 <?xml version="1.0" encoding="UTF-8"?>
@@ -339,9 +340,10 @@ public partial class TestPage : ContentPage
 		// Should NOT contain "new View()" - that would be a compiler error due to protected ctor
 		Assert.DoesNotContain("new global::Microsoft.Maui.Controls.View()", generated, StringComparison.Ordinal);
 		
-		// Should generate default instead of trying to instantiate the type
-		Assert.Contains("View", generated, StringComparison.Ordinal);
-		Assert.Contains("= default;", generated, StringComparison.Ordinal);
+		// Should NOT generate default(T) for Children collections - the OnPlatform node should be removed entirely
+		// (Note: ResourceDictionary entries with x:Key still generate default(T) as expected)
+		Assert.DoesNotContain("View view", generated, StringComparison.Ordinal);
+		Assert.DoesNotContain("= default;", generated, StringComparison.Ordinal);
 		
 		// There should be no compilation errors
 		Assert.False(result.Diagnostics.Any(d => d.Severity == Microsoft.CodeAnalysis.DiagnosticSeverity.Error),

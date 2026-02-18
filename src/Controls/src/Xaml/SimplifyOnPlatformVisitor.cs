@@ -88,11 +88,12 @@ class SimplifyOnPlatformVisitor : IXamlNodeVisitor
 			bool hasKey = node.Properties.TryGetValue(XmlName.xKey, out keyNode);
 
 			// If no value found for target platform and no Default,
-			// create a default value node if we have x:TypeArguments.
+			// create a default value node ONLY if we have x:Key (ResourceDictionary entry).
+			// For Children collections (no x:Key), the node will be removed by the code below (lines 145/167).
 			// Mark it as IsOnPlatformDefaultValue so SourceGen can generate default(T)
 			// instead of trying to instantiate the type (which fails for abstract types
 			// or types with protected constructors).
-			if (onNode == null && node.XmlType.TypeArguments != null && node.XmlType.TypeArguments.Count > 0)
+			if (onNode == null && hasKey && node.XmlType.TypeArguments != null && node.XmlType.TypeArguments.Count > 0)
 			{
 				var typeArg = node.XmlType.TypeArguments[0];
 				var elementNode = new ElementNode(typeArg, typeArg.NamespaceUri, node.NamespaceResolver, node.LineNumber, node.LinePosition)
@@ -140,9 +141,10 @@ class SimplifyOnPlatformVisitor : IXamlNodeVisitor
 				}
 				else
 				{
-					// No value and no x:TypeArguments - skip simplification
-					// This maintains consistency with runtime OnPlatform<T> behavior
-					return;
+					// No matching platform, no Default, and either no x:TypeArguments or no x:Key.
+					// Remove the OnPlatform node to prevent null references in Children collections.
+					// For ResourceDictionaries (with x:Key), a default value node is created above.
+					parentEnode.Properties.Remove(name);
 				}
 				return;
 			}
@@ -162,9 +164,10 @@ class SimplifyOnPlatformVisitor : IXamlNodeVisitor
 					}
 					else
 					{
-						// No value and no x:TypeArguments - skip simplification
-						// This maintains consistency with runtime OnPlatform<T> behavior
-						return;
+						// No matching platform, no Default, and either no x:TypeArguments or no x:Key.
+						// Remove the OnPlatform node to prevent null references in Children collections.
+						// For ResourceDictionaries (with x:Key), a default value node is created above.
+						parentEnode2.CollectionItems.RemoveAt(index);
 					}
 				}
 			}
