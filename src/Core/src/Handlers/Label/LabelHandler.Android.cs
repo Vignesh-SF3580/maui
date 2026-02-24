@@ -22,9 +22,12 @@ namespace Microsoft.Maui.Handlers
 
 			// Android TextView reports full available width instead of actual text width when
 			// text wraps to multiple lines, causing incorrect positioning for non-Fill alignments.
+			// Skip this optimization when MaxLines is set: narrowing the width would cause
+			// more lines to wrap, potentially exceeding MaxLines and truncating visible text.
 			if (VirtualView.HorizontalLayoutAlignment != Primitives.LayoutAlignment.Fill &&
 				PlatformView?.Layout is Layout layout &&
-				layout.LineCount > 1)
+				layout.LineCount > 1 &&
+				PlatformView.MaxLines == int.MaxValue)
 			{
 				float maxLineWidth = 0;
 				for (int i = 0; i < layout.LineCount; i++)
