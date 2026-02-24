@@ -281,8 +281,19 @@ namespace Microsoft.Maui.Controls.Xaml
 			}
 			catch (Exception e)
 			{
-				Context.ExceptionHandler?.Invoke(e);
-				throw;
+				// StaticResourceExtension must always rethrow even when a handler is present —
+				// unlike other markup extensions, swallowing this exception would silently apply
+				// an invalid value to the property. Notify the handler first to log the error.
+				if (markupExtension is StaticResourceExtension)
+				{
+					Context.ExceptionHandler?.Invoke(e);
+					throw;
+				}
+
+				if (Context.ExceptionHandler != null)
+					Context.ExceptionHandler(e);
+				else
+					throw;
 			}
 		}
 
