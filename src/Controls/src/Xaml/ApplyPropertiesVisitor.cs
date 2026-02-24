@@ -293,7 +293,7 @@ namespace Microsoft.Maui.Controls.Xaml
 				if (Context.ExceptionHandler != null)
 					Context.ExceptionHandler(e);
 				else
-					throw;
+					throw e;
 			}
 		}
 
