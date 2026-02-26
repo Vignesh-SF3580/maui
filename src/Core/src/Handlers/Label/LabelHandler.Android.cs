@@ -53,7 +53,9 @@ namespace Microsoft.Maui.Handlers
 								MeasureSpecMode.Unspecified.MakeMeasureSpec(0));
 
 							if (PlatformView.Layout?.LineCount > PlatformView.MaxLines)
+							{
 								return size; // Narrowing causes truncation; return original size
+							}
 						}
 
 						return new Size(actualWidth, size.Height);
