@@ -22,13 +22,11 @@ namespace Microsoft.Maui.Handlers
 
 			// Android TextView reports full available width instead of actual text width when
 			// text wraps to multiple lines, causing incorrect positioning for non-Fill alignments.
-			// Skip this optimization when MaxLines is constrained or truncation (Ellipsize) is
-			// active: narrowing the width would cause more lines to wrap, potentially exceeding
-			// MaxLines and truncating visible text.
+			// We narrow the desired width to the widest rendered line, but only when that narrowing
+			// won't cause re-wrapping that exceeds MaxLines and truncates visible text.
 			if (VirtualView.HorizontalLayoutAlignment != Primitives.LayoutAlignment.Fill &&
 				PlatformView?.Layout is Layout layout &&
 				layout.LineCount > 1 &&
-				PlatformView.MaxLines == int.MaxValue &&
 				PlatformView.Ellipsize == null)
 			{
 				float maxLineWidth = 0;
@@ -43,7 +41,23 @@ namespace Microsoft.Maui.Handlers
 				{
 					var actualWidth = Context.FromPixels(maxLineWidth + PlatformView.PaddingLeft + PlatformView.PaddingRight);
 					if (actualWidth < size.Width)
+					{
+						// When MaxLines is constrained, verify that narrowing doesn't cause the text
+						// to re-wrap into more lines than MaxLines allows (which would truncate text).
+						// Re-measure at exactly the pixel width the view will be arranged at.
+						if (PlatformView.MaxLines != int.MaxValue)
+						{
+							var narrowedPx = (int)Context.ToPixels(actualWidth);
+							PlatformView.Measure(
+								MeasureSpecMode.AtMost.MakeMeasureSpec(narrowedPx),
+								MeasureSpecMode.Unspecified.MakeMeasureSpec(0));
+
+							if (PlatformView.Layout?.LineCount > PlatformView.MaxLines)
+								return size; // Narrowing causes truncation; return original size
+						}
+
 						return new Size(actualWidth, size.Height);
+					}
 				}
 			}
 
