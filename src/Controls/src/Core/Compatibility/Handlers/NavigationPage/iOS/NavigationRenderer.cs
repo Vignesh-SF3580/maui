@@ -43,6 +43,10 @@ namespace Microsoft.Maui.Controls.Handlers.Compatibility
 		bool _disposed;
 		IMauiContext _mauiContext;
 		IMauiContext MauiContext => _mauiContext;
+		// iOS 26+ liquid glass: a thin cover view added to the NavigationBar's subview hierarchy
+		// to paint over the glass-effect strip above the bar in landscape orientation.
+		// See: https://github.com/dotnet/maui/issues/31826
+		UIView _statusBarGlassCover;
 		public static IPropertyMapper<NavigationPage, NavigationRenderer> Mapper = new PropertyMapper<NavigationPage, NavigationRenderer>(ViewHandler.ViewMapper)
 		{
 			[PlatformConfiguration.iOSSpecific.NavigationPage.PrefersLargeTitlesProperty.PropertyName] = NavigationPage.MapPrefersLargeTitles,
@@ -116,6 +120,26 @@ namespace Microsoft.Maui.Controls.Handlers.Compatibility
 			parentingViewController?.UpdateLeftBarButtonItem();
 		}
 
+		public override void ViewWillTransitionToSize(SizeF toSize, IUIViewControllerTransitionCoordinator coordinator)
+		{
+			base.ViewWillTransitionToSize(toSize, coordinator);
+
+			// iOS 26+ "liquid glass": update the status bar glass cover after rotation completes
+			// so it is properly positioned for the new orientation.
+			// See: https://github.com/dotnet/maui/issues/31826
+			if (OperatingSystem.IsIOSVersionAtLeast(26) || OperatingSystem.IsMacCatalystVersionAtLeast(26))
+			{
+				if (NavPage is null)
+				{
+					return;
+				}
+
+				coordinator?.AnimateAlongsideTransition(
+					_ => { },
+					_ => UpdateStatusBarGlassCover());
+			}
+		}
+
 		public Task<bool> PopToRootAsync(Page page, bool animated = true)
 		{
 			return OnPopToRoot(page, animated);
@@ -156,6 +180,13 @@ namespace Microsoft.Maui.Controls.Handlers.Compatibility
 			base.ViewDidAppear(animated);
 
 			View.SetNeedsLayout();
+
+			// iOS 26+ "liquid glass": ensure the status bar area cover is updated on every appear.
+			// See: https://github.com/dotnet/maui/issues/31826
+			if (OperatingSystem.IsIOSVersionAtLeast(26) || OperatingSystem.IsMacCatalystVersionAtLeast(26))
+			{
+				UpdateStatusBarGlassCover();
+			}
 		}
 
 		public override void ViewWillAppear(bool animated)
@@ -892,6 +923,70 @@ namespace Microsoft.Maui.Controls.Handlers.Compatibility
 					}
 				}
 			}
+
+			// iOS 26+ "liquid glass" design: the thin status bar strip at the top of the screen
+			// renders using View.BackgroundColor rather than the navigation bar's color, causing
+			// a visible white gap when the nav bar color is non-white (especially in landscape).
+			// Permanently sync View.BackgroundColor to match the bar color so this strip always
+			// shows the correct color regardless of orientation.
+			// See: https://github.com/dotnet/maui/issues/31826
+			if (OperatingSystem.IsIOSVersionAtLeast(26) || OperatingSystem.IsMacCatalystVersionAtLeast(26))
+			{
+				var barColor = _currentBarBackgroundColor?.ToPlatform() ?? UIColor.SystemBackground;
+				if (View is not null)
+				{
+					View.BackgroundColor = barColor;
+				}
+				// Also update window background when window is available
+				// (the thin status bar strip in landscape uses the window background)
+				if (View?.Window is not null)
+				{
+					View.Window.BackgroundColor = barColor;
+				}
+
+				// Update the status bar glass cover overlay
+				UpdateStatusBarGlassCover();
+			}
+		}
+
+		// Adds or updates a thin UIView cover that paints over the "liquid glass" white strip
+		// that iOS 26 renders above the navigation bar in landscape orientation.
+		// The cover is positioned at y=0 with height equal to NavigationBar.Frame.Y (i.e.,
+		// the status bar strip height), so it fills the gap between the screen top and the nav bar.
+		// It is added as a top-level subview of View so it renders above the NavigationBar's glass layer.
+		// See: https://github.com/dotnet/maui/issues/31826
+		void UpdateStatusBarGlassCover()
+		{
+			if (View is null || NavigationBar is null)
+			{
+				return;
+			}
+
+			var barColor = _currentBarBackgroundColor?.ToPlatform() ?? UIColor.SystemBackground;
+			var navBarY = NavigationBar.Frame.Y;
+
+			// navBarY is the distance from the top of the screen to the navigation bar.
+			// In portrait (navBarY == 0): the nav bar already covers the full top → no cover needed.
+			// In landscape on iOS 26 (navBarY > 0): a glass/white strip shows above the bar → cover it.
+			if (navBarY <= 0)
+			{
+				// Remove cover if it exists (not needed in this orientation)
+				_statusBarGlassCover?.RemoveFromSuperview();
+				_statusBarGlassCover = null;
+				return;
+			}
+
+			if (_statusBarGlassCover is null)
+			{
+				_statusBarGlassCover = new UIView { UserInteractionEnabled = false };
+				// Bring to front so it renders above the NavigationBar's glass extension
+				View.AddSubview(_statusBarGlassCover);
+				View.BringSubviewToFront(_statusBarGlassCover);
+			}
+
+			// Cover y=0 to y=navBarY (the status bar strip), full width of the navigation bar
+			_statusBarGlassCover.Frame = new RectangleF(0, 0, NavigationBar.Frame.Width, navBarY);
+			_statusBarGlassCover.BackgroundColor = barColor;
 		}
 
 		void UpdateBarTextColor()
@@ -1064,7 +1159,7 @@ namespace Microsoft.Maui.Controls.Handlers.Compatibility
 				// We only check height because the navigation bar constrains vertical space (44pt height),
 				// but allows horizontal flexibility. Width can vary based on icon design and content,
 				// while height must fit within the fixed navigation bar bounds to avoid clipping.
-				
+
 				// if the image is bigger than the default available size, resize it
 				if (icon is not null)
 				{
