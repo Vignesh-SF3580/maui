@@ -771,9 +771,17 @@ namespace Microsoft.Maui.Media
 			var originalFullPath = originalResult.FullPath;
 			var originalContentType = originalResult.ContentType;
 
-			// When applying lossy compression, output will be JPEG
-			var isLossyCompressed = compressionQuality > 0 && compressionQuality < 100;
-			var outputExtension = isLossyCompressed ? ".jpg" : Path.GetExtension(originalFileName ?? string.Empty);
+			// Preserve the original format: PNG stays PNG, everything else compresses to JPEG.
+			// When no compression is applied (quality == 100), preserve the original extension as-is.
+			var originalWasPng = !string.IsNullOrEmpty(originalFileName) &&
+				Path.GetExtension(originalFileName).Equals(".png", StringComparison.OrdinalIgnoreCase);
+			string outputExtension;
+			if (compressionQuality == 100)
+				outputExtension = Path.GetExtension(originalFileName ?? string.Empty);
+			else if (originalWasPng)
+				outputExtension = ".png";
+			else
+				outputExtension = ".jpg";
 
 			FileName = !string.IsNullOrEmpty(originalFileName) && !string.IsNullOrEmpty(outputExtension)
 				? Path.ChangeExtension(originalFileName, outputExtension)
