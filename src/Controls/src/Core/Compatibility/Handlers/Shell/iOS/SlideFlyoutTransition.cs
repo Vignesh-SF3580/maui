@@ -48,7 +48,23 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 			nfloat openPixels = openLimit * openPercent;
 
 			if (behavior == FlyoutBehavior.Locked)
-				shell.Frame = new CGRect(bounds.X + flyoutWidth, bounds.Y, bounds.Width - flyoutWidth, flyoutHeight);
+			{
+				// On iOS 26+, the Liquid Glass navigation bar fires explicit CALayer
+				// animations when its parent view's frame changes (even when wrapped in
+				// UIView.PerformWithoutAnimation or CATransaction.DisableActions, which
+				// only suppress implicit animations). These animations trigger
+				// animationDidStop without a matching animationDidStart in WDA, permanently
+				// breaking its animation-idle tracking, causing XCUITest to hang.
+				// Keep shell at full bounds on iOS 26+ to prevent this.
+				if (!OperatingSystem.IsIOSVersionAtLeast(26))
+				{
+					shell.Frame = new CGRect(bounds.X + flyoutWidth, bounds.Y, bounds.Width - flyoutWidth, flyoutHeight);
+				}
+				else
+				{
+					shell.Frame = bounds;
+				}
+			}
 			else
 				shell.Frame = bounds;
 
