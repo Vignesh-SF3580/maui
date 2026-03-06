@@ -700,6 +700,11 @@ namespace Microsoft.Maui.Platform
 
 		internal static IDisposable OnLoaded(this UIView uiView, Action action)
 		{
+			return uiView.OnLoaded(null, action);
+		}
+
+		internal static IDisposable OnLoaded(this UIView uiView, IElement? element, Action action)
+		{
 			if (uiView.IsLoaded())
 			{
 				action();
@@ -782,7 +787,11 @@ namespace Microsoft.Maui.Platform
 
 		internal static IDisposable OnUnloaded(this UIView uiView, Action action)
 		{
+			return uiView.OnUnloaded(null, action);
+		}
 
+		internal static IDisposable OnUnloaded(this UIView uiView, IElement? element, Action action)
+		{
 			if (!uiView.IsLoaded())
 			{
 				action();
@@ -831,14 +840,63 @@ namespace Microsoft.Maui.Platform
 			{
 				if (!uiView.IsLoaded() && disposable != null)
 				{
-					disposable.Dispose();
-					disposable = null;
-					action();
+					// Check if this is a Shell tab scenario where we shouldn't fire Unloaded
+					if (element != null && IsShellTabScenario(element))
+					{
+						// For Shell tab switching, add a small delay to see if the view gets re-added
+						Foundation.NSTimer.CreateScheduledTimer(0.05, (timer) =>
+						{
+							// Only fire Unloaded if the view is still not loaded after the delay
+							// and it's not still in a Shell tab scenario
+							if (!uiView.IsLoaded() && disposable != null && !IsShellTabScenario(element))
+							{
+								disposable.Dispose();
+								disposable = null;
+								action();
+							}
+							timer.Invalidate();
+						});
+					}
+					else
+					{
+						// Normal scenario - fire Unloaded immediately
+						disposable.Dispose();
+						disposable = null;
+						action();
+					}
 				}
 			}
 			;
 
 			return disposable;
+		}
+
+		static bool IsShellTabScenario(IElement element)
+		{
+			// Simple heuristic: if the element's type name contains "Shell" or "Tab", 
+			// it's likely a Shell scenario. This avoids circular dependencies
+			// while providing basic Shell detection.
+			var typeName = element.GetType().FullName ?? "";
+			
+			// Check if we're dealing with Shell-related types
+			if (typeName.Contains("Shell") || typeName.Contains("Tab"))
+			{
+				return true;
+			}
+			
+			// Check parent hierarchy for Shell context
+			var parent = element.Parent;
+			while (parent != null)
+			{
+				var parentTypeName = parent.GetType().FullName ?? "";
+				if (parentTypeName.Contains("Shell") || parentTypeName.Contains("Tab"))
+				{
+					return true;
+				}
+				parent = parent.Parent;
+			}
+			
+			return false;
 		}
 
 		internal static void UpdateLayerBorder(this CoreAnimation.CALayer layer, IButtonStroke? stroke)
