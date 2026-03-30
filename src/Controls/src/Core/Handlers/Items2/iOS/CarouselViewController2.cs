@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Diagnostics.CodeAnalysis;
-using System.Threading;
 using System.Threading.Tasks;
 using CoreGraphics;
 using Foundation;
@@ -19,7 +18,7 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 		int _section = 0;
 		bool _wasDetachedFromWindow = false;
 		CarouselViewLoopManager _carouselViewLoopManager;
-		CancellationTokenSource _scrollDebounce;
+		bool _isProgrammaticScrolling;
 
 		// We need to keep track of the old views to update the visual states
 		// if this is null we are not attached to the window
@@ -228,6 +227,9 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 
 		internal void UpdateIsScrolling(bool isScrolling)
 		{
+			if (!isScrolling)
+				_isProgrammaticScrolling = false;
+
 			if (ItemsView is CarouselView carousel)
 			{
 				carousel.IsScrolling = isScrolling;
@@ -474,6 +476,12 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 					return;
 				}
 
+				// On iOS 26, ScrollToItem(animated) fires intermediate scroll callbacks that re-trigger
+				// UpdateFromPosition with stale intermediate positions. Set the flag so those callbacks
+				// are ignored until the animation completes (cleared in UpdateIsScrolling(false)).
+				if (animate && OperatingSystem.IsIOSVersionAtLeast(26))
+					_isProgrammaticScrolling = true;
+
 				CollectionView.ScrollToItem(goToIndexPath, uICollectionViewScrollPosition, animate);
 			}
 		}
@@ -539,7 +547,7 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 			UpdateVisualStates();
 		}
 
-		internal async void UpdateFromPosition()
+		internal void UpdateFromPosition()
 		{
 			if (!InitialPositionSet)
 			{
@@ -556,58 +564,19 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 				return;
 			}
 
+			// On iOS 26, UICollectionView.ScrollToItem() fires intermediate scroll callbacks during
+			// animation, which would re-trigger this method with transient positions and interrupt
+			// the programmatic scroll. Return early while a programmatic scroll is in progress;
+			// the flag is cleared when the animation ends in UpdateIsScrolling(false).
+			if (_isProgrammaticScrolling)
+			{
+				return;
+			}
+
 			var currentItemPosition = GetIndexForItem(carousel.CurrentItem).Row;
 			var carouselPosition = carousel.Position;
 
-			if (OperatingSystem.IsIOSVersionAtLeast(26))
-			{
-				// Cancel any pending position update to prevent race conditions
-				_scrollDebounce?.Cancel();
-				_scrollDebounce = new CancellationTokenSource();
-				var token = _scrollDebounce.Token;
-
-				try
-				{
-					// On iOS 26, UICollectionView can emit intermediate scroll callbacks before settling.
-					// A slightly longer delay than UpdateInitialPosition's 100ms was empirically chosen
-					// to ensure the scroll operation runs after those intermediate callbacks complete.
-					await Task.Delay(100, token).ContinueWith(_ =>
-					{
-						MainThread.BeginInvokeOnMainThread(() =>
-						{
-							// Re-validate state after the delay to avoid operating on stale or disposed views
-							if (!InitialPositionSet)
-							{
-								return;
-							}
-
-							if (ItemsView is not CarouselView currentCarousel)
-							{
-								return;
-							}
-
-							if (ItemsSource is null || ItemsSource.ItemCount == 0)
-							{
-								return;
-							}
-
-							var updatedCurrentItemPosition = GetIndexForItem(currentCarousel.CurrentItem).Row;
-							var updatedCarouselPosition = currentCarousel.Position;
-
-							ScrollToPosition(updatedCarouselPosition, updatedCurrentItemPosition, currentCarousel.AnimatePositionChanges);
-						});
-					}, token);
-				}
-				catch (Exception)
-				{
-					// Silently handle exceptions to prevent app crashes in async void context
-					// If the delay or scroll operation fails, the carousel will remain in its current state
-				}
-			}
-			else
-			{
-				ScrollToPosition(carouselPosition, currentItemPosition, carousel.AnimatePositionChanges);
-			}
+			ScrollToPosition(carouselPosition, currentItemPosition, carousel.AnimatePositionChanges);
 
 			// SetCurrentItem(carouselPosition);
 		}
@@ -769,17 +738,6 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 			}
 		}
 
-		protected override void Dispose(bool disposing)
-		{
-			if (disposing)
-			{
-				_scrollDebounce?.Cancel();
-				_scrollDebounce?.Dispose();
-				_scrollDebounce = null;
-			}
-
-			base.Dispose(disposing);
-		}
 	}
 
 	class CarouselViewLoopManager : IDisposable
