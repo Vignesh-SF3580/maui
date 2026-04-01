@@ -50,6 +50,14 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 			if (viewController is null)
 				return;
 
+			// Suppress scroll/threshold events fired synchronously by SetCollectionViewLayout or
+			// ContentOffset restoration inside UpdateLayout(). With estimated item heights (~30pt)
+			// and a large viewport, all items can appear "visible", causing a spurious
+			// RemainingItemsThresholdReached event. Legitimate user-initiated scrolls are never
+			// suppressed because they only occur after UpdateLayout() has returned.
+			if (viewController.IsUpdatingLayout)
+				return;
+
 			var itemsView = viewController.ItemsView;
 			var source = viewController.ItemsSource;
 			itemsView.SendScrolled(itemsViewScrolledEventArgs);
