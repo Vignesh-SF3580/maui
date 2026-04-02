@@ -34,12 +34,6 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 		bool _isEmpty = true;
 		bool _emptyViewDisplayed;
 		bool _disposed;
-		bool _isUpdatingLayout;
-
-		// True while UpdateLayout() is executing (including synchronous scrollViewDidScroll callbacks
-		// triggered by SetCollectionViewLayout and ContentOffset restoration). Used to suppress
-		// spurious scroll events and threshold checks during layout transitions.
-		internal bool IsUpdatingLayout => _isUpdatingLayout;
 
 		[UnconditionalSuppressMessage("Memory", "MEM0002", Justification = "Proven safe in test: MemoryTests.HandlerDoesNotLeak")]
 		UIView _emptyUIView;
@@ -59,7 +53,7 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 			ItemsViewLayout = layout;
 		}
 
-		public void UpdateLayout(UICollectionViewLayout newLayout, bool preserveContentOffset = false)
+		public void UpdateLayout(UICollectionViewLayout newLayout)
 		{
 			// Ignore calls to this method if the new layout is the same as the old one
 			if (CollectionView.CollectionViewLayout == newLayout)
@@ -73,60 +67,23 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 				ScrollDirection = compositionalLayout.Configuration.ScrollDirection;
 			}
 
-			// Only save the content offset when it needs to be preserved across layout changes
-			// (e.g., when ItemSpacing changes). Unconditionally assigning CollectionView.ContentOffset
-			// — even to the same value — causes UIKit to schedule a deferred scrollViewDidScroll
-			// reconciliation via CADisplayLink, which fires after _isUpdatingLayout is cleared and
-			// triggers spurious RemainingItemsThresholdReached / Scrolled events.
-			var savedOffset = preserveContentOffset ? CollectionView.ContentOffset : default;
+			// Preserve the content offset before updating the layout.
+			// SetCollectionViewLayout with animated:false can unexpectedly shift the content offset
+			// on UICollectionViewCompositionalLayout with estimated item sizes.
+			var savedOffset = CollectionView.ContentOffset;
 
-			// Suppress synchronous scrollViewDidScroll callbacks fired by SetCollectionViewLayout
-			// inside EnsureLayoutInitialized(). With estimated item heights (~30pt) and a large
-			// viewport, all items can appear "visible", causing a spurious threshold event.
-			_isUpdatingLayout = true;
-			try
+			ItemsViewLayout = newLayout;
+			_initialized = false;
+
+			EnsureLayoutInitialized();
+
+			if (_initialized)
 			{
-				ItemsViewLayout = newLayout;
-				_initialized = false;
-
-				EnsureLayoutInitialized();
-
-				if (_initialized)
-				{
-					// Check if SetCollectionViewLayout shifted ContentOffset (can happen with horizontal
-					// CompositionalLayout and estimated item sizes — UIKit scrolls to a wrong item).
-					bool offsetWasShifted = preserveContentOffset &&
-						!ContentOffsetEqualsAtPixelLevel(CollectionView.ContentOffset, savedOffset);
-
-					if (offsetWasShifted)
-					{
-						// Restore the content offset that was shifted by SetCollectionViewLayout.
-						// Skip ReloadData here: calling it after restoring would trigger another
-						// UIKit deferred pass that could shift ContentOffset again, undoing the restore.
-						CollectionView.ContentOffset = savedOffset;
-					}
-					else
-					{
-						// ContentOffset was not shifted (vertical list at top, or non-spacing change).
-						// Always call ReloadData to apply the new layout geometry and prevent UIKit's
-						// deferred layout pass from introducing a position gap (Issue #34636).
-						ReloadData();
-					}
-				}
+				// Restore the content offset that may have been changed by SetCollectionViewLayout
+				CollectionView.ContentOffset = savedOffset;
+				// Reload the data so the currently visible cells get laid out according to the new layout
+				ReloadData();
 			}
-			finally
-			{
-				_isUpdatingLayout = false;
-			}
-		}
-
-		// Compares two content offsets at device-pixel resolution to avoid spurious comparisons
-		// caused by sub-pixel floating-point drift (e.g., during layout animations).
-		static bool ContentOffsetEqualsAtPixelLevel(CGPoint a, CGPoint b)
-		{
-			var scale = UIScreen.MainScreen.Scale;
-			return Math.Round(a.X * scale) == Math.Round(b.X * scale)
-				&& Math.Round(a.Y * scale) == Math.Round(b.Y * scale);
 		}
 
 		protected override void Dispose(bool disposing)
