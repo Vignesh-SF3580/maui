@@ -132,8 +132,13 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 		//TODO: this is being called 2 times on startup, one from OnCreatePlatformView and otehr from the mapper for the layout
 		protected virtual void UpdateLayout()
 		{
+			UpdateLayoutInternal(preserveContentOffset: false);
+		}
+
+		internal void UpdateLayoutInternal(bool preserveContentOffset)
+		{
 			_layout = SelectLayout();
-			Controller?.UpdateLayout(_layout);
+			Controller?.UpdateLayout(_layout, preserveContentOffset);
 		}
 
 		protected virtual void ScrollToRequested(object sender, ScrollToRequestEventArgs args)

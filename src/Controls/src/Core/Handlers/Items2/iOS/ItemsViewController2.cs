@@ -54,10 +54,21 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 		}
 
 		public void UpdateLayout(UICollectionViewLayout newLayout)
+			=> UpdateLayoutCore(newLayout, preserveContentOffset: false);
+
+		// Internal overload used when spacing properties change at runtime.
+		// Preserves ContentOffset to prevent UIKit from shifting the scroll position
+		// when SetCollectionViewLayout is called on a horizontal CompositionalLayout
+		// with estimated item sizes.
+		internal void UpdateLayout(UICollectionViewLayout newLayout, bool preserveContentOffset)
+			=> UpdateLayoutCore(newLayout, preserveContentOffset);
+
+		void UpdateLayoutCore(UICollectionViewLayout newLayout, bool preserveContentOffset)
 		{
 			// Ignore calls to this method if the new layout is the same as the old one
 			if (CollectionView.CollectionViewLayout == newLayout)
 				return;
+
 			if (newLayout is UICollectionViewCompositionalLayout compositionalLayout)
 			{
 				// Note: on carousel layout, the scroll direction is always vertical to achieve horizontal paging with snapping.
@@ -66,12 +77,22 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 				ScrollDirection = compositionalLayout.Configuration.ScrollDirection;
 			}
 
+			var savedOffset = preserveContentOffset ? CollectionView.ContentOffset : default;
+
 			ItemsViewLayout = newLayout;
 			_initialized = false;
+
 			EnsureLayoutInitialized();
 
 			if (_initialized)
 			{
+				// Only restore if UIKit actually shifted the offset (pixel-level check avoids
+				// assigning the same value, which schedules a spurious scrollViewDidScroll via CADisplayLink).
+				if (preserveContentOffset && !ContentOffsetEqualsAtPixelLevel(CollectionView.ContentOffset, savedOffset))
+				{
+					CollectionView.ContentOffset = savedOffset;
+				}
+
 				// Reload the data so the currently visible cells get laid out according to the new layout
 				ReloadData();
 			}
@@ -330,7 +351,7 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 						}
 					}
 				}
-
+	
 				CollectionView.UpdateFlowDirection(ItemsView);
 			}
 
