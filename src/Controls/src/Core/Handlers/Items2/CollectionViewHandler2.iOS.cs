@@ -265,7 +265,13 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 			 args.PropertyName == nameof(GridItemsLayout.Span) ||
 			 args.PropertyName == nameof(LinearItemsLayout.ItemSpacing))
 			{
-				UpdateLayout();
+				// Preserve the scroll position only for spacing property changes.
+				// SetCollectionViewLayout can shift ContentOffset on a horizontal
+				// UICollectionViewCompositionalLayout with estimated item sizes.
+				bool preserveContentOffset = args.PropertyName == nameof(LinearItemsLayout.ItemSpacing) ||
+					args.PropertyName == nameof(GridItemsLayout.VerticalItemSpacing) ||
+					args.PropertyName == nameof(GridItemsLayout.HorizontalItemSpacing);
+				UpdateLayoutInternal(preserveContentOffset);
 			}
 		}
 	}

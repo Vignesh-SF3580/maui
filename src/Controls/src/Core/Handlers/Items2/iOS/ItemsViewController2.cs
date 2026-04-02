@@ -54,6 +54,16 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 		}
 
 		public void UpdateLayout(UICollectionViewLayout newLayout)
+			=> UpdateLayoutCore(newLayout, preserveContentOffset: false);
+
+		// Internal overload used when spacing properties change at runtime.
+		// Preserves ContentOffset to prevent UIKit from shifting the scroll position
+		// when SetCollectionViewLayout is called on a horizontal CompositionalLayout
+		// with estimated item sizes.
+		internal void UpdateLayout(UICollectionViewLayout newLayout, bool preserveContentOffset)
+			=> UpdateLayoutCore(newLayout, preserveContentOffset);
+
+		void UpdateLayoutCore(UICollectionViewLayout newLayout, bool preserveContentOffset)
 		{
 			// Ignore calls to this method if the new layout is the same as the old one
 			if (CollectionView.CollectionViewLayout == newLayout)
@@ -67,6 +77,8 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 				ScrollDirection = compositionalLayout.Configuration.ScrollDirection;
 			}
 
+			var savedOffset = preserveContentOffset ? CollectionView.ContentOffset : default;
+
 			ItemsViewLayout = newLayout;
 			_initialized = false;
 
@@ -74,9 +86,23 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 
 			if (_initialized)
 			{
+				// Only restore if UIKit actually shifted the offset (pixel-level check avoids
+				// assigning the same value, which schedules a spurious scrollViewDidScroll via CADisplayLink).
+				if (preserveContentOffset && !ContentOffsetEqualsAtPixelLevel(CollectionView.ContentOffset, savedOffset))
+				{
+					CollectionView.ContentOffset = savedOffset;
+				}
+
 				// Reload the data so the currently visible cells get laid out according to the new layout
 				ReloadData();
 			}
+		}
+
+		static bool ContentOffsetEqualsAtPixelLevel(CoreGraphics.CGPoint a, CoreGraphics.CGPoint b)
+		{
+			nfloat scale = UIScreen.MainScreen.Scale;
+			return (nint)(a.X * scale) == (nint)(b.X * scale)
+				&& (nint)(a.Y * scale) == (nint)(b.Y * scale);
 		}
 
 		protected override void Dispose(bool disposing)
