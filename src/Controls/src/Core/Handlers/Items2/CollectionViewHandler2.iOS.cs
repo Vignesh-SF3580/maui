@@ -264,16 +264,7 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 				args.PropertyName == nameof(GridItemsLayout.Span) ||
 				args.PropertyName == nameof(LinearItemsLayout.ItemSpacing))
 			{
-				// Preserve the content offset when spacing/sizing properties change.
-				// SetCollectionViewLayout can shift the contentOffset on a
-				// UICollectionViewCompositionalLayout with estimated item sizes.
-				// Preserving it ensures the scroll position is maintained (fixes Issue #23377).
-				// For other layout updates (MapItemTemplate, MapFlowDirection, etc.), content offset
-				// preservation is not needed and would cause spurious deferred scroll callbacks.
-				bool preserveContentOffset = args.PropertyName == nameof(LinearItemsLayout.ItemSpacing) ||
-					args.PropertyName == nameof(GridItemsLayout.VerticalItemSpacing) ||
-					args.PropertyName == nameof(GridItemsLayout.HorizontalItemSpacing);
-				UpdateLayout(preserveContentOffset);
+				UpdateLayout();
 			}
 		}
 	}
