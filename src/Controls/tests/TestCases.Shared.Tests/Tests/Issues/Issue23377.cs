@@ -1,8 +1,10 @@
-﻿using NUnit.Framework;
+﻿#if TEST_FAILS_ON_IOS && TEST_FAILS_ON_CATALYST // Issue link: https://github.com/dotnet/maui/issues/34785
+using NUnit.Framework;
 using UITest.Appium;
 using UITest.Core;
 
 namespace Microsoft.Maui.TestCases.Tests.Issues;
+
 public class Issue23377 : _IssuesUITest
 {
 	public Issue23377(TestDevice device) : base(device)
@@ -20,3 +22,4 @@ public class Issue23377 : _IssuesUITest
 		VerifyScreenshot();
 	}
 }
+#endif
