@@ -187,6 +187,8 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 			var itemSizingStrategy = ItemsView.ItemSizingStrategy;
 			var itemsLayout = ItemsView.ItemsLayout;
 
+			SubscribeToItemsLayoutPropertyChanged(itemsLayout);
+
 			if (itemsLayout is GridItemsLayout gridItemsLayout)
 			{
 				return LayoutFactory2.CreateGrid(gridItemsLayout, groupInfo, headerFooterInfo);
@@ -218,7 +220,6 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 
 		public static void MapItemsLayout(CollectionViewHandler2 handler, StructuredItemsView itemsView)
 		{
-			handler.UpdateItemsLayoutSubscription(itemsView.ItemsLayout);
 			handler.UpdateLayout();
 		}
 
@@ -227,44 +228,23 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 			handler.UpdateLayout();
 		}
 
-		IItemsLayout _subscribedItemsLayout;
-
-		protected override void DisconnectHandler(UIView platformView)
+		void SubscribeToItemsLayoutPropertyChanged(IItemsLayout itemsLayout)
 		{
-			base.DisconnectHandler(platformView);
-			UpdateItemsLayoutSubscription(null);
-		}
-
-		internal void UpdateItemsLayoutSubscription(IItemsLayout newLayout)
-		{
-			if (_subscribedItemsLayout == newLayout)
+			if (itemsLayout is not null)
 			{
-				return;
-			}
+				itemsLayout.PropertyChanged += (sender, args) =>
+				{
+					if (args.PropertyName == nameof(ItemsLayout.SnapPointsAlignment) ||
+						args.PropertyName == nameof(ItemsLayout.SnapPointsType) ||
+						args.PropertyName == nameof(GridItemsLayout.VerticalItemSpacing) ||
+						args.PropertyName == nameof(GridItemsLayout.HorizontalItemSpacing) ||
+						args.PropertyName == nameof(GridItemsLayout.Span) ||
+						args.PropertyName == nameof(LinearItemsLayout.ItemSpacing))
 
-			if (_subscribedItemsLayout is not null)
-			{
-				_subscribedItemsLayout.PropertyChanged -= OnItemsLayoutPropertyChanged;
-			}
-
-			_subscribedItemsLayout = newLayout;
-
-			if (_subscribedItemsLayout is not null)
-			{
-				_subscribedItemsLayout.PropertyChanged += OnItemsLayoutPropertyChanged;
-			}
-		}
-
-		void OnItemsLayoutPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs args)
-		{
-			if (args.PropertyName == nameof(ItemsLayout.SnapPointsAlignment) ||
-				args.PropertyName == nameof(ItemsLayout.SnapPointsType) ||
-				args.PropertyName == nameof(GridItemsLayout.VerticalItemSpacing) ||
-				args.PropertyName == nameof(GridItemsLayout.HorizontalItemSpacing) ||
-				args.PropertyName == nameof(GridItemsLayout.Span) ||
-				args.PropertyName == nameof(LinearItemsLayout.ItemSpacing))
-			{
-				UpdateLayout();
+					{
+						UpdateLayout();
+					}
+				};
 			}
 		}
 	}
