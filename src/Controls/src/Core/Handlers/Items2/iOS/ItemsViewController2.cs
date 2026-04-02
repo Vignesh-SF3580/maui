@@ -77,13 +77,6 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 			}
 		}
 
-		static bool ContentOffsetEqualsAtPixelLevel(CoreGraphics.CGPoint a, CoreGraphics.CGPoint b)
-		{
-			nfloat scale = UIScreen.MainScreen.Scale;
-			return (nint)(a.X * scale) == (nint)(b.X * scale)
-				&& (nint)(a.Y * scale) == (nint)(b.Y * scale);
-		}
-
 		protected override void Dispose(bool disposing)
 		{
 			if (_disposed)
