@@ -91,10 +91,11 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 
 	public partial class CollectionViewHandler2 : ItemsViewHandler2<ReorderableItemsView>
 	{
+		IItemsLayout _subscribedItemsLayout;
+
 		protected override void DisconnectHandler(UIView platformView)
 		{
-			if (ItemsView?.ItemsLayout is IItemsLayout itemsLayout)
-				itemsLayout.PropertyChanged -= OnItemsLayoutPropertyChanged;
+			UnsubscribeFromItemsLayoutPropertyChanged();
 			base.DisconnectHandler(platformView);
 		}
 
@@ -237,10 +238,21 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 
 		void SubscribeToItemsLayoutPropertyChanged(IItemsLayout itemsLayout)
 		{
+			UnsubscribeFromItemsLayoutPropertyChanged();
+
 			if (itemsLayout is not null)
 			{
-				itemsLayout.PropertyChanged -= OnItemsLayoutPropertyChanged;
+				_subscribedItemsLayout = itemsLayout;
 				itemsLayout.PropertyChanged += OnItemsLayoutPropertyChanged;
+			}
+		}
+
+		void UnsubscribeFromItemsLayoutPropertyChanged()
+		{
+			if (_subscribedItemsLayout is not null)
+			{
+				_subscribedItemsLayout.PropertyChanged -= OnItemsLayoutPropertyChanged;
+				_subscribedItemsLayout = null;
 			}
 		}
 
@@ -253,22 +265,13 @@ namespace Microsoft.Maui.Controls.Handlers.Items2
 			 args.PropertyName == nameof(GridItemsLayout.Span) ||
 			 args.PropertyName == nameof(LinearItemsLayout.ItemSpacing))
 			{
-				// Preserve the scroll position for spacing property changes.
-				// SetCollectionViewLayout (called inside UpdateLayout) can shift ContentOffset
-				// on a horizontal UICollectionViewCompositionalLayout with estimated item sizes.
+				// Preserve the scroll position only for spacing property changes.
+				// SetCollectionViewLayout can shift ContentOffset on a horizontal
+				// UICollectionViewCompositionalLayout with estimated item sizes.
 				bool preserveContentOffset = args.PropertyName == nameof(LinearItemsLayout.ItemSpacing) ||
 					args.PropertyName == nameof(GridItemsLayout.VerticalItemSpacing) ||
 					args.PropertyName == nameof(GridItemsLayout.HorizontalItemSpacing);
-
-				var collectionView = Controller?.CollectionView;
-				var savedOffset = preserveContentOffset ? collectionView?.ContentOffset : null;
-
-				UpdateLayout();
-
-				if (preserveContentOffset && savedOffset.HasValue && collectionView is not null)
-				{
-					collectionView.ContentOffset = savedOffset.Value;
-				}
+				UpdateLayoutInternal(preserveContentOffset);
 			}
 		}
 	}
