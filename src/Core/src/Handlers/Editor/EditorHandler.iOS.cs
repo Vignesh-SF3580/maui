@@ -54,24 +54,6 @@ namespace Microsoft.Maui.Handlers
 
 		public override Size GetDesiredSize(double widthConstraint, double heightConstraint)
 		{
-			// When the editor's content overflows its current frame (i.e., it's scrollable),
-			// cap the returned height to preserve scrollability. Without this, rotation triggers
-			// a re-measurement that returns the full content height, causing the editor
-			// to grow and lose scrollability (fixes #35114).
-			// Skip capping when AllowAutoGrowth is set (AutoSize=TextChanges mode),
-			// because in that mode the Editor is expected to grow to fit its content.
-			double capHeight = 0;
-			bool shouldCapHeight = false;
-			if (double.IsInfinity(heightConstraint) && !PlatformView.AllowAutoGrowth)
-			{
-				var currentHeight = (double)PlatformView.Bounds.Height;
-				if (currentHeight > 0 && PlatformView.ContentSize.Height > currentHeight)
-				{
-					shouldCapHeight = true;
-					capHeight = currentHeight;
-				}
-			}
-
 			if (double.IsInfinity(widthConstraint) || double.IsInfinity(heightConstraint))
 			{
 				// If we drop an infinite value into base.GetDesiredSize for the Editor, we'll
@@ -87,15 +69,25 @@ namespace Microsoft.Maui.Handlers
 
 				if (double.IsInfinity(heightConstraint))
 				{
-					heightConstraint = sizeThatFits.Height;
+					var currentHeight = (double)PlatformView.Bounds.Height;
+					if (!PlatformView.AllowAutoGrowth
+						&& currentHeight > 0
+						&& PlatformView.ContentSize.Height > currentHeight)
+					{
+						heightConstraint = currentHeight;
+					}
+					else
+					{
+						heightConstraint = sizeThatFits.Height;
+					}
 				}
 			}
 
 			var result = base.GetDesiredSize(widthConstraint, heightConstraint);
 
-			if (shouldCapHeight && result.Height > capHeight)
+			if (result.Height > heightConstraint)
 			{
-				return new Size(result.Width, capHeight);
+				return new Size(result.Width, heightConstraint);
 			}
 
 			return result;
