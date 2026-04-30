@@ -29,7 +29,9 @@ namespace Microsoft.Maui.Controls
 			EditorHandler.Mapper.AppendToMapping<Editor, IEditorHandler>(nameof(AutoSize), (handler, editor) =>
 			{
 				if (handler.PlatformView is Microsoft.Maui.Platform.MauiTextView textView)
+				{
 					textView.AllowAutoGrowth = editor.AutoSize == EditorAutoSizeOption.TextChanges;
+				}
 			});
 #endif
 
