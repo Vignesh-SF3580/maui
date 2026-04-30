@@ -70,6 +70,10 @@ namespace Microsoft.Maui.Handlers
 				if (double.IsInfinity(heightConstraint))
 				{
 					var currentHeight = (double)PlatformView.Bounds.Height;
+
+					// When content overflows the frame and auto-growth is off, cap the height
+					// to the current frame height to preserve scrollability after rotation (#35114).
+					// Skip when AllowAutoGrowth is set (AutoSize=TextChanges) — Editor should grow freely.
 					if (!PlatformView.AllowAutoGrowth
 						&& currentHeight > 0
 						&& PlatformView.ContentSize.Height > currentHeight)
@@ -85,6 +89,8 @@ namespace Microsoft.Maui.Handlers
 
 			var result = base.GetDesiredSize(widthConstraint, heightConstraint);
 
+			// UITextView (a UIScrollView subclass) ignores the height in SizeThatFits and always
+			// returns the full content height. Cap the result to enforce the constraint.
 			if (result.Height > heightConstraint)
 			{
 				return new Size(result.Width, heightConstraint);
