@@ -25,6 +25,14 @@ namespace Microsoft.Maui.Controls
 			}
 #endif
 
+#if IOS || MACCATALYST
+			EditorHandler.Mapper.AppendToMapping<Editor, IEditorHandler>(nameof(AutoSize), (handler, editor) =>
+			{
+				if (handler.PlatformView is Microsoft.Maui.Platform.MauiTextView textView)
+					textView.AllowAutoGrowth = editor.AutoSize == EditorAutoSizeOption.TextChanges;
+			});
+#endif
+
 #if IOS || ANDROID
 			EditorHandler.Mapper.AppendToMapping(nameof(VisualElement.IsFocused), InputView.MapIsFocused);
 			EditorHandler.Mapper.AppendToMapping(nameof(VisualElement.IsVisible), InputView.MapIsVisible);
