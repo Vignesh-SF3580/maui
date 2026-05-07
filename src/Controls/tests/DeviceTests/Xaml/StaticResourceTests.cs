@@ -9,13 +9,16 @@ namespace Microsoft.Maui.DeviceTests;
 [Category(TestCategory.Xaml)]
 public class StaticResourceTests : IDisposable
 {
-    [Fact("Issue #23903: Missing ControlTemplate with exception handler should throw")]
+    [Fact("Issue #23903 / #35018: Missing ControlTemplate with exception handler should not throw but invoke handler")]
     [RequiresUnreferencedCode("XAML parsing may require unreferenced code")]
-    public void MissingControlTemplate_WithExceptionHandler_ShouldThrow()
+    public void MissingControlTemplate_WithExceptionHandler_ShouldNotThrow()
     {
-        // Issue #23903: StaticResourceExtension should always throw when resource is not found,
-        // even when an exception handler is present (for debug/hot reload scenarios).
-        // This prevents the app from crashing when relaunching.
+        // Issue #35018 fixed the behavior introduced by #33859:
+        // When ExceptionHandler2 is set (Hot Reload / IDE context), a missing StaticResource
+        // now reports the error to the handler and returns null instead of throwing.
+        // This prevents iOS Hot Reload crashes where exceptions propagate through UIKit
+        // lifecycle callbacks during Shell item setup and corrupt app state (#35018).
+        // Without a handler (normal launch), exceptions are still thrown as before.
 
         Controls.Internals.ResourceLoader.ExceptionHandler2 = (ex) => { };
 
@@ -29,7 +32,7 @@ public class StaticResourceTests : IDisposable
 
         var page = new ContentPage();
 
-        // Should throw an exception even with handler present
+        // Should NOT throw when ExceptionHandler2 is set — error is reported to the handler
         bool exceptionThrown = false;
         try
         {
@@ -40,7 +43,7 @@ public class StaticResourceTests : IDisposable
             exceptionThrown = true;
         }
 
-        Assert.True(exceptionThrown, "Expected an exception to be thrown for missing ControlTemplate");
+        Assert.False(exceptionThrown, "Expected no exception to be thrown when ExceptionHandler2 is set (Hot Reload context)");
     }
 
     public void Dispose()
