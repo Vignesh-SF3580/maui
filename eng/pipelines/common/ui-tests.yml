@@ -517,3 +517,4 @@ stages:
                     parameters:
                       platform: 'MacCatalyst'
                       artifactName: 'uitest-snapshot-results-maccatalyst-$(System.StageName)-$(System.JobName)-$(System.JobAttempt)'
+                      
