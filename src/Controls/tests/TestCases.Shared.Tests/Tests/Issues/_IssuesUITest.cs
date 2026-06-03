@@ -52,15 +52,6 @@ namespace Microsoft.Maui.TestCases.Tests
 		private void NavigateToIssue(string issue)
 		{
 			App.WaitForElement("GoToTestButton", issue);
-
-			// We're on the gallery page right now — capture the Android Shell-mode probe so tests
-			// that need it (via HelperExtensions.IsAndroidShellHandlerEnabled) can decide whether
-			// to skip. Cheap and cached after the first successful read.
-			if (App is AppiumAndroidApp androidApp)
-			{
-				HelperExtensions.PreCacheAndroidShellMode(androidApp);
-			}
-
 			App.EnterText("SearchBar", issue);
 			App.WaitForElement("GoToTestButton");
 			App.Tap("GoToTestButton");

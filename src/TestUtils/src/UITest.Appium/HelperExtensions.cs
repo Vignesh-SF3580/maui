@@ -25,11 +25,6 @@ namespace UITest.Appium
 		// while still failing reasonably fast when the app is truly frozen.
 		static readonly TimeSpan AppiumCommandTimeout = TimeSpan.FromSeconds(45);
 
-		// Cached result of the Android Shell-mode probe (Handler vs legacy Renderer).
-		// Populated lazily by PreCacheAndroidShellMode() when the app is on the gallery page
-		// (where the "MauiAndroidShellMode" probe Label lives). Cached forever after first read.
-		static bool? _cachedAndroidShellHandlerEnabled;
-
 		/// <summary>
 		/// For desktop, this will perform a mouse click on the target element.
 		/// For mobile, this will tap the element.
@@ -2378,51 +2373,6 @@ namespace UITest.Appium
 			}
 
 			return false;
-		}
-
-		/// <summary>
-		/// Reads the "MauiAndroidShellMode" probe Label from the gallery page and caches
-		/// whether the app is using the new Android ShellHandler. Call while the gallery
-		/// page is visible (e.g., from <c>_IssuesUITest.NavigateToIssue</c>); subsequent
-		/// calls are no-ops once the cache is set.
-		/// </summary>
-		public static void PreCacheAndroidShellMode(AppiumAndroidApp androidApp)
-		{
-			if (_cachedAndroidShellHandlerEnabled.HasValue)
-				return;
-
-			try
-			{
-				// On Android, MAUI's Label maps AutomationId to the View's resource-id
-				// (NOT content-description), so use MobileBy.Id which queries resource-id.
-				var probe = androidApp.Driver.FindElement(OpenQA.Selenium.Appium.MobileBy.Id("MauiAndroidShellMode"));
-				var text = probe?.Text;
-				if (!string.IsNullOrEmpty(text))
-				{
-					_cachedAndroidShellHandlerEnabled = string.Equals(text, "Handler", StringComparison.OrdinalIgnoreCase);
-				}
-			}
-			catch
-			{
-				// Probe not in view — leave the cache empty so a later call can try again.
-			}
-		}
-
-		/// <summary>
-		/// Returns <c>true</c> when the Android test app was built with
-		/// <c>UseAndroidShellHandlers=true</c> (new ShellHandler), <c>false</c> when using
-		/// the legacy ShellRenderer. Falls back to <c>true</c> if the probe is unreadable.
-		/// </summary>
-		public static bool IsAndroidShellHandlerEnabled(AppiumAndroidApp androidApp)
-		{
-			if (!_cachedAndroidShellHandlerEnabled.HasValue)
-			{
-				PreCacheAndroidShellMode(androidApp);
-			}
-
-			// Default to true (Handler) when probe was never readable, so we don't accidentally
-			// skip tests on a correctly-configured handler run.
-			return _cachedAndroidShellHandlerEnabled ?? true;
 		}
 
 		/// <summary>

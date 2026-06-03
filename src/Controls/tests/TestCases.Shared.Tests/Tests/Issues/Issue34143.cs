@@ -14,13 +14,6 @@ public class Issue34143 : _IssuesUITest
 	[Category(UITestCategories.Shell)]
 	public void TabBarShouldBeVisibleAfterNavigatingFromModalViaGoToAsync()
 	{
-		// This test only validates the new Android ShellHandler behavior; on the legacy
-		// ShellRenderer path the behavior differs.
-		if (App is AppiumAndroidApp androidApp && !HelperExtensions.IsAndroidShellHandlerEnabled(androidApp))
-		{
-			Assert.Ignore("This test only runs on Android with the new ShellHandler (UseAndroidShellHandlers=true).");
-		}
-
 		// Start on Home page
 		App.WaitForElement("Issue34143PushModal");
 

@@ -64,27 +64,6 @@
 			rootLayout.Add(corePageView);
 			Grid.SetRow(corePageView, 3);
 
-			// Probe element so UI tests can detect at runtime which Android Shell architecture
-			// the app was built with (new ShellHandler vs legacy ShellRenderer). Read by
-			// HelperExtensions.IsAndroidShellHandlerEnabled. The probe sits on this gallery
-			// page which every test traverses at startup (see _IssuesUITest.NavigateToIssue),
-			// so its value is captured before tests navigate away.
-			// Visually inert (1px tall, transparent text) but kept in Android's accessibility
-			// tree — do NOT set Opacity=0 or InputTransparent=true, both cause Android to
-			// strip the view from the a11y tree and Appium can no longer find it.
-			var shellModeProbe = new Label
-			{
-				AutomationId = "MauiAndroidShellMode",
-				Text = AppContext.TryGetSwitch("Microsoft.Maui.RuntimeFeature.UseAndroidShellHandlers", out var useHandler) && useHandler
-					? "Handler"
-					: "Renderer",
-				HeightRequest = 1,
-				TextColor = Colors.Transparent,
-				BackgroundColor = Colors.Transparent
-			};
-			rootLayout.Add(shellModeProbe);
-			Grid.SetRow(shellModeProbe, 0);
-
 			AutomationId = "Gallery";
 
 			Content = rootLayout;
