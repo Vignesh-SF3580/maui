@@ -208,4 +208,3 @@ steps:
     displayName: 'Enable Notification Center'
     continueOnError: true
     timeoutInMinutes: 60
-    
