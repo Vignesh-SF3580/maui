@@ -42,7 +42,6 @@ namespace Microsoft.Maui.DeviceTests
 					}
 #else
 					handlers.AddHandler(typeof(Controls.NavigationPage), typeof(NavigationViewHandler));
-#endif
 					handlers.AddHandler<NestingView, NestingViewHandler>();
 					handlers.AddHandler<ContentView, ContentViewHandler>();
 					handlers.AddHandler<CollectionView, CollectionViewHandler>();
