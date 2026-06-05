@@ -12,7 +12,6 @@ parameters:
   headless: true
   runtimeVariant: 'Mono' #Mono, CoreCLR, NativeAOT
   useMaterial3: false # NEW PARAMETER - Enable Material3 build
-  useAndroidShellRenderer: false # Enable Android Shell renderer (default false = use handlers)
 
 steps:
 - ${{ if eq(parameters.platform, 'ios')}}:
@@ -54,15 +53,15 @@ steps:
 - pwsh: echo "##vso[task.prependpath]$(DotNet.Dir)"
   displayName: 'Add .NET to PATH'
 
-# Clean artifacts for Material3 or Shell renderer build to ensure clean state
+# Clean artifacts for Material3 build to ensure clean state
 # Reference: Controls.TestCases.HostApp.csproj line 17-19 warning comment
 - pwsh: |
-    if ((("${{ parameters.useMaterial3 }}" -eq "true") -or ("${{ parameters.useAndroidShellRenderer }}" -eq "true")) -and ("${{ parameters.platform }}" -eq "android")) {
-        Write-Host "Cleaning artifacts folder for Material3/Shell renderer clean build"
+    if (("${{ parameters.useMaterial3 }}" -eq "true") -and ("${{ parameters.platform }}" -eq "android")) {
+        Write-Host "Cleaning artifacts folder for Material3 clean build"
         Remove-Item -Path "$(System.DefaultWorkingDirectory)/artifacts" -Recurse -Force -ErrorAction SilentlyContinue
         Write-Host "Artifacts folder cleaned successfully"
     }
-  displayName: 'Clean artifacts for Material3/Shell renderer'
+  displayName: 'Clean artifacts for Material3'
   
 - pwsh: |
     Get-Content $PSCommandPath
@@ -76,14 +75,6 @@ steps:
         Write-Host "Material3 is only supported for Android platform, ignoring useMaterial3 parameter"
     }
     
-    # Add Android Shell renderer build argument if enabled (default is handlers)
-    if (("${{ parameters.useAndroidShellRenderer }}" -eq "true") -and ("${{ parameters.platform }}" -eq "android")) {
-        $buildCommand += " --useandroidshellrenderer=true"
-        Write-Host "Building with Android Shell Renderer (handlers disabled)"
-    } elseif ("${{ parameters.useAndroidShellRenderer }}" -eq "true") {
-        Write-Host "Android Shell renderer is only supported for Android platform, ignoring useAndroidShellRenderer parameter"
-    }
-    
     Invoke-Expression $buildCommand
   displayName: 'Build the samples'
 
@@ -95,7 +86,7 @@ steps:
   continueOnError: true
 
 - publish: $(System.DefaultWorkingDirectory)/artifacts/bin
-  condition: and(ne('${{ parameters.platform }}' , 'windows'), ne('${{ parameters.runtimeVariant }}' , 'NativeAOT'), ne('${{ parameters.runtimeVariant }}' , 'CoreCLR'), eq('${{ parameters.useMaterial3 }}', 'false'), eq('${{ parameters.useAndroidShellRenderer }}', 'false'), succeeded())
+  condition: and(ne('${{ parameters.platform }}' , 'windows'), ne('${{ parameters.runtimeVariant }}' , 'NativeAOT'), ne('${{ parameters.runtimeVariant }}' , 'CoreCLR'), eq('${{ parameters.useMaterial3 }}', 'false'), succeeded())
   artifact: ui-tests-samples
 
 - publish: $(System.DefaultWorkingDirectory)/artifacts/bin
@@ -103,33 +94,24 @@ steps:
   artifact: ui-tests-samples-nativeaot
 
 - publish: $(System.DefaultWorkingDirectory)/artifacts/bin
-  condition: and(ne('${{ parameters.platform }}' , 'windows'), eq('${{ parameters.runtimeVariant }}' , 'CoreCLR'), eq('${{ parameters.useMaterial3 }}', 'false'), eq('${{ parameters.useAndroidShellRenderer }}', 'false'), succeeded())
+  condition: and(ne('${{ parameters.platform }}' , 'windows'), eq('${{ parameters.runtimeVariant }}' , 'CoreCLR'), eq('${{ parameters.useMaterial3 }}', 'false'), succeeded())
   artifact: ui-tests-samples-coreclr
 
 # Material3 artifacts
 - publish: $(System.DefaultWorkingDirectory)/artifacts/bin
-  condition: and(ne('${{ parameters.platform }}' , 'windows'), ne('${{ parameters.runtimeVariant }}' , 'CoreCLR'), eq('${{ parameters.useMaterial3 }}', 'true'), eq('${{ parameters.useAndroidShellRenderer }}', 'false'), succeeded())
+  condition: and(ne('${{ parameters.platform }}' , 'windows'), ne('${{ parameters.runtimeVariant }}' , 'CoreCLR'), eq('${{ parameters.useMaterial3 }}', 'true'), succeeded())
   artifact: ui-tests-samples-material3
 
 - publish: $(System.DefaultWorkingDirectory)/artifacts/bin
-  condition: and(ne('${{ parameters.platform }}' , 'windows'), eq('${{ parameters.runtimeVariant }}' , 'CoreCLR'), eq('${{ parameters.useMaterial3 }}', 'true'), eq('${{ parameters.useAndroidShellRenderer }}', 'false'), succeeded())
+  condition: and(ne('${{ parameters.platform }}' , 'windows'), eq('${{ parameters.runtimeVariant }}' , 'CoreCLR'), eq('${{ parameters.useMaterial3 }}', 'true'), succeeded())
   artifact: ui-tests-samples-material3-coreclr
-
-# Shell renderer artifacts (handlers disabled)
-- publish: $(System.DefaultWorkingDirectory)/artifacts/bin
-  condition: and(ne('${{ parameters.platform }}' , 'windows'), ne('${{ parameters.runtimeVariant }}' , 'CoreCLR'), eq('${{ parameters.useMaterial3 }}', 'false'), eq('${{ parameters.useAndroidShellRenderer }}', 'true'), succeeded())
-  artifact: ui-tests-samples-shell
-
-- publish: $(System.DefaultWorkingDirectory)/artifacts/bin
-  condition: and(ne('${{ parameters.platform }}' , 'windows'), eq('${{ parameters.runtimeVariant }}' , 'CoreCLR'), eq('${{ parameters.useMaterial3 }}', 'false'), eq('${{ parameters.useAndroidShellRenderer }}', 'true'), succeeded())
-  artifact: ui-tests-samples-shell-coreclr
 
 - publish: $(System.DefaultWorkingDirectory)/artifacts/bin
   condition: and(eq('${{ parameters.platform }}' , 'windows'), succeeded())
   artifact: ui-tests-samples-windows
 
 - publish: $(System.DefaultWorkingDirectory)/artifacts/bin
-  condition: and(ne('${{ parameters.platform }}' , 'windows'), ne('${{ parameters.runtimeVariant }}' , 'NativeAOT'), ne('${{ parameters.runtimeVariant }}' , 'CoreCLR'), eq('${{ parameters.useMaterial3 }}', 'false'), eq('${{ parameters.useAndroidShellRenderer }}', 'false'), failed())
+  condition: and(ne('${{ parameters.platform }}' , 'windows'), ne('${{ parameters.runtimeVariant }}' , 'NativeAOT'), ne('${{ parameters.runtimeVariant }}' , 'CoreCLR'), eq('${{ parameters.useMaterial3 }}', 'false'), failed())
   artifact: ui-tests-samples_failed_$(System.JobAttempt)
 
 - publish: $(System.DefaultWorkingDirectory)/artifacts/bin
@@ -137,26 +119,17 @@ steps:
   artifact: ui-tests-samples-nativeaot_failed_$(System.JobAttempt)
 
 - publish: $(System.DefaultWorkingDirectory)/artifacts/bin
-  condition: and(ne('${{ parameters.platform }}' , 'windows'), eq('${{ parameters.runtimeVariant }}' , 'CoreCLR'), eq('${{ parameters.useMaterial3 }}', 'false'), eq('${{ parameters.useAndroidShellRenderer }}', 'false'), failed())
+  condition: and(ne('${{ parameters.platform }}' , 'windows'), eq('${{ parameters.runtimeVariant }}' , 'CoreCLR'), eq('${{ parameters.useMaterial3 }}', 'false'), failed())
   artifact: ui-tests-samples-coreclr_failed_$(System.JobAttempt)
 
 # Material3 failure artifacts
 - publish: $(System.DefaultWorkingDirectory)/artifacts/bin
-  condition: and(ne('${{ parameters.platform }}' , 'windows'), ne('${{ parameters.runtimeVariant }}' , 'CoreCLR'), eq('${{ parameters.useMaterial3 }}', 'true'), eq('${{ parameters.useAndroidShellRenderer }}', 'false'), failed())
+  condition: and(ne('${{ parameters.platform }}' , 'windows'), ne('${{ parameters.runtimeVariant }}' , 'CoreCLR'), eq('${{ parameters.useMaterial3 }}', 'true'), failed())
   artifact: ui-tests-samples-material3_failed_$(System.JobAttempt)
 
 - publish: $(System.DefaultWorkingDirectory)/artifacts/bin
-  condition: and(ne('${{ parameters.platform }}' , 'windows'), eq('${{ parameters.runtimeVariant }}' , 'CoreCLR'), eq('${{ parameters.useMaterial3 }}', 'true'), eq('${{ parameters.useAndroidShellRenderer }}', 'false'), failed())
+  condition: and(ne('${{ parameters.platform }}' , 'windows'), eq('${{ parameters.runtimeVariant }}' , 'CoreCLR'), eq('${{ parameters.useMaterial3 }}', 'true'), failed())
   artifact: ui-tests-samples-material3-coreclr_failed_$(System.JobAttempt)
-
-# Shell renderer failure artifacts (handlers disabled)
-- publish: $(System.DefaultWorkingDirectory)/artifacts/bin
-  condition: and(ne('${{ parameters.platform }}' , 'windows'), ne('${{ parameters.runtimeVariant }}' , 'CoreCLR'), eq('${{ parameters.useMaterial3 }}', 'false'), eq('${{ parameters.useAndroidShellRenderer }}', 'true'), failed())
-  artifact: ui-tests-samples-shell_failed_$(System.JobAttempt)
-
-- publish: $(System.DefaultWorkingDirectory)/artifacts/bin
-  condition: and(ne('${{ parameters.platform }}' , 'windows'), eq('${{ parameters.runtimeVariant }}' , 'CoreCLR'), eq('${{ parameters.useMaterial3 }}', 'false'), eq('${{ parameters.useAndroidShellRenderer }}', 'true'), failed())
-  artifact: ui-tests-samples-shell-coreclr_failed_$(System.JobAttempt)
 
 - publish: $(System.DefaultWorkingDirectory)/artifacts/bin
   condition: and(eq('${{ parameters.platform }}' , 'windows'), failed())
