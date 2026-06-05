@@ -225,13 +225,6 @@ Task("uitests-apphost")
             properties.Add("UseMaterial3", "true");
         }
 
-        var useAndroidShellRenderer = Argument("useandroidshellrenderer", false);
-        if (useAndroidShellRenderer)
-        {
-            Information("Building with Android Shell renderer enabled (handlers disabled)");
-            properties.Add("UseAndroidShellHandlers", "false");
-        }
-
         if (useNuget)
         {
             properties.Add("UseWorkload", "true");
