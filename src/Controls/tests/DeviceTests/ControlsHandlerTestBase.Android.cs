@@ -135,16 +135,28 @@ namespace Microsoft.Maui.DeviceTests
 				handler = wh.VirtualView.Content.Handler;
 			}
 
-			if (handler is Microsoft.Maui.Controls.Handlers.Compatibility.ShellRenderer sr)
+			if (handler is Microsoft.Maui.Controls.Handlers.ShellHandler sr)
 			{
 				var shell = handler.VirtualView as Shell;
 				var currentPage = shell.CurrentPage;
 
 				if (currentPage?.Handler?.PlatformView is AView pagePlatformView)
 				{
-					var parentContainer = pagePlatformView.GetParentOfType<CoordinatorLayout>();
-					var toolbar = parentContainer?.GetFirstChildOfType<MaterialToolbar>();
-					return toolbar;
+					// In the new handler architecture, there's a nested CoordinatorLayout
+					// (shellitem_coordinator) that doesn't contain the toolbar.
+					// The toolbar is at the NRM level (outer CoordinatorLayout from navigationlayout.axml).
+					// Walk up to find a CoordinatorLayout that contains a MaterialToolbar.
+					var coordinator = pagePlatformView.GetParentOfType<CoordinatorLayout>();
+					while (coordinator is not null)
+					{
+						var toolbar = coordinator.GetFirstChildOfType<MaterialToolbar>();
+						if (toolbar is not null)
+						{
+							return toolbar;
+						}
+						// Try the next CoordinatorLayout up
+						coordinator = (coordinator.Parent as AView)?.GetParentOfType<CoordinatorLayout>();
+					}
 				}
 
 				return null;
