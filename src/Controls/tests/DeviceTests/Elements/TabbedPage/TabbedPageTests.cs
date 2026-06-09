@@ -40,11 +40,12 @@ namespace Microsoft.Maui.DeviceTests
 					handlers.AddHandler<Page, PageHandler>();
 					handlers.AddHandler<Label, LabelHandler>();
 
-					handlers.AddHandler(typeof(NavigationPage), typeof(NavigationViewHandler));
 #if IOS || MACCATALYST
 					handlers.AddHandler(typeof(TabbedPage), typeof(TabbedRenderer));
+					handlers.AddHandler(typeof(NavigationPage), typeof(NavigationRenderer));
 #else
 					handlers.AddHandler(typeof(TabbedPage), typeof(TabbedViewHandler));
+					handlers.AddHandler(typeof(NavigationPage), typeof(NavigationViewHandler));
 #endif
 				});
 

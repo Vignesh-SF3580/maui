@@ -27,7 +27,6 @@ namespace Microsoft.Maui.DeviceTests
 				builder.ConfigureMauiHandlers(handlers =>
 				{
 					handlers.AddHandler(typeof(Toolbar), typeof(ToolbarHandler));
-					handlers.AddHandler(typeof(NavigationPage), typeof(NavigationViewHandler));
 #if IOS || MACCATALYST
 					if (includeNavigationViewHandler)
 					{
@@ -39,6 +38,7 @@ namespace Microsoft.Maui.DeviceTests
 					}
 					handlers.AddHandler(typeof(TabbedPage), typeof(TabbedRenderer));
 #else
+					handlers.AddHandler(typeof(NavigationPage), typeof(NavigationViewHandler));
 					handlers.AddHandler(typeof(TabbedPage), typeof(TabbedViewHandler));
 #endif
 					handlers.AddHandler(typeof(FlyoutPage), typeof(FlyoutViewHandler));
