@@ -46,6 +46,7 @@ namespace Microsoft.Maui.DeviceTests
 					handlers.AddHandler<ContentView, ContentViewHandler>();
 					handlers.AddHandler<CollectionView, CollectionViewHandler>();
 					handlers.AddHandler<Border, BorderHandler>();
+#endif
 				});
 			});
 		}
