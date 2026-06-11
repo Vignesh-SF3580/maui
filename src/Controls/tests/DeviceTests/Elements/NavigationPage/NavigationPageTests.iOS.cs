@@ -22,10 +22,10 @@ namespace Microsoft.Maui.DeviceTests
 		[Fact]
 		public async Task NavigatingBackViaBackButtonFiresNavigatedEvent()
 		{
-			SetupBuilder();
+			SetupBuilder(includeNavigationViewHandler: false);
 			var page = new ContentPage();
 
-			var navPage = new NavigationPage(page) { Title = "App Page" };
+			var navPage = new NavigationPage(false, page) { Title = "App Page" };
 
 			await navPage.PushAsync(new ContentPage());
 			await CreateHandlerAndAddToWindow<WindowHandlerStub>(new Window(navPage), async (handler) =>
@@ -44,7 +44,7 @@ namespace Microsoft.Maui.DeviceTests
 		[Fact]
 		public async Task Handler_NavigatingBackViaBackButtonFiresNavigatedEvent()
 		{
-			SetupBuilder(includeNavigationViewHandler: true);
+			SetupBuilder();
 			var page = new ContentPage() { Title = "Root Page" };
 
 			var navPage = new NavigationPage(page) { Title = "App Page" };
@@ -72,7 +72,7 @@ namespace Microsoft.Maui.DeviceTests
 		[Fact]
 		public async Task Handler_CanReusePages()
 		{
-			SetupBuilder(includeNavigationViewHandler: true);
+			SetupBuilder();
 			var navPage = new NavigationPage(new ContentPage { Title = "Root Page" });
 			var reusedPage = new ContentPage { Content = new Label() };
 
@@ -113,6 +113,30 @@ namespace Microsoft.Maui.DeviceTests
 
 			var translucent = await GetValueAsync(navPage, (handler) => (handler.ViewController as UINavigationController).NavigationBar.Translucent);
 			Assert.Equal(enabled, translucent);
+		}
+
+		//src/Compatibility/Core/tests/iOS/NavigationTests.cs
+		[Fact]
+		[Description("Multiple calls to NavigationRenderer.Dispose shouldn't crash")]
+		public async Task NavigationRendererDoubleDisposal()
+		{
+			SetupBuilder(includeNavigationViewHandler: false);
+
+			var root = new ContentPage()
+			{
+				Title = "root",
+				Content = new Label { Text = "Hello" }
+			};
+
+			await root.Dispatcher.DispatchAsync(() =>
+			{
+				var navPage = new NavigationPage(false, root);
+				var handler = CreateHandler(navPage);
+
+				// Calling Dispose more than once should be fine
+				(handler as NavigationRenderer).Dispose();
+				(handler as NavigationRenderer).Dispose();
+			});
 		}
 	}
 }

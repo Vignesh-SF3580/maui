@@ -20,6 +20,7 @@ using ShellHandler = Microsoft.Maui.Controls.Handlers.Compatibility.ShellRendere
 #if IOS || MACCATALYST
 using FlyoutViewHandler = Microsoft.Maui.Controls.Handlers.Compatibility.PhoneFlyoutPageRenderer;
 using TabbedViewHandler = Microsoft.Maui.Controls.Handlers.Compatibility.TabbedRenderer;
+using NavigationViewRenderer = Microsoft.Maui.Controls.Handlers.Compatibility.NavigationRenderer;
 #endif
 
 namespace Microsoft.Maui.DeviceTests
@@ -30,13 +31,24 @@ namespace Microsoft.Maui.DeviceTests
 #endif
 	public partial class ModalTests : ControlsHandlerTestBase
 	{
-		void SetupBuilder()
+		void SetupBuilder(bool includeNavigationViewHandler = true)
 		{
 			EnsureHandlerCreated(builder =>
 			{
 				builder.ConfigureMauiHandlers(handlers =>
 				{
+#if IOS || MACCATALYST
+					if (includeNavigationViewHandler)
+					{
+						handlers.AddHandler(typeof(NavigationPage), typeof(NavigationViewHandler));
+					}
+					else
+					{
+						handlers.AddHandler(typeof(NavigationPage), typeof(NavigationViewRenderer));
+					}
+#else
 					handlers.AddHandler(typeof(NavigationPage), typeof(NavigationViewHandler));
+#endif
 					handlers.AddHandler(typeof(FlyoutPage), typeof(FlyoutViewHandler));
 					handlers.AddHandler(typeof(TabbedPage), typeof(TabbedViewHandler));
 					handlers.AddHandler<Window, WindowHandlerStub>();
@@ -251,7 +263,7 @@ namespace Microsoft.Maui.DeviceTests
 		[InlineData(false)]
 		public async Task PushModalFromAppearing(bool useShell)
 		{
-			SetupBuilder();
+			SetupBuilder(includeNavigationViewHandler: false);
 			var windowPage = new ContentPage()
 			{
 				Content = new Label()

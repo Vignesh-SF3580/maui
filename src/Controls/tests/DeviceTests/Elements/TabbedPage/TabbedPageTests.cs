@@ -28,7 +28,7 @@ namespace Microsoft.Maui.DeviceTests
 	[Category(TestCategory.TabbedPage)]
 	public partial class TabbedPageTests : ControlsHandlerTestBase
 	{
-		void SetupBuilder(Action<MauiAppBuilder> additionalCreationActions = null)
+		void SetupBuilder(bool includeNavigationViewHandler = true, Action<MauiAppBuilder> additionalCreationActions = null)
 		{
 			EnsureHandlerCreated(builder =>
 			{
@@ -40,7 +40,19 @@ namespace Microsoft.Maui.DeviceTests
 					handlers.AddHandler<Page, PageHandler>();
 					handlers.AddHandler<Label, LabelHandler>();
 
+#if IOS || MACCATALYST
+					if (includeNavigationViewHandler)
+					{
+						handlers.AddHandler(typeof(NavigationPage), typeof(NavigationViewHandler));
+					}
+					else
+					{
+						handlers.AddHandler(typeof(NavigationPage), typeof(NavigationRenderer));
+					}
+#else
 					handlers.AddHandler(typeof(NavigationPage), typeof(NavigationViewHandler));
+#endif
+
 #if IOS || MACCATALYST
 					handlers.AddHandler(typeof(TabbedPage), typeof(TabbedRenderer));
 #else
@@ -221,7 +233,7 @@ namespace Microsoft.Maui.DeviceTests
 		[ClassData(typeof(TabbedPagePivots))]
 		public async Task RemoveCurrentPageAndThenReAddDoesntCrash(bool bottomTabs, bool isSmoothScrollEnabled)
 		{
-			SetupBuilder();
+			SetupBuilder(includeNavigationViewHandler: false);
 
 			var tabbedPage = CreateBasicTabbedPage(bottomTabs, isSmoothScrollEnabled);
 
@@ -367,7 +379,7 @@ namespace Microsoft.Maui.DeviceTests
 		[ClassData(typeof(TabbedPagePivots))]
 		public async Task MovingBetweenMultiplePagesWithNestedNavigationPages(bool bottomTabs, bool isSmoothScrollEnabled)
 		{
-			SetupBuilder();
+			SetupBuilder(includeNavigationViewHandler: false);
 
 			var pages = new NavigationPage[5];
 
