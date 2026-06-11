@@ -121,5 +121,29 @@ namespace Microsoft.Maui.DeviceTests
 				(handler as NavigationRenderer).Dispose();
 			});
 		}
+
+		[Fact]
+		[Description("Multiple calls to NavigationViewHandler.DisconnectHandler shouldn't crash")]
+		public async Task Handler_NavigationViewHandlerDoubleDisposal()
+		{
+			SetupBuilder();
+
+			var root = new ContentPage()
+			{
+				Title = "root",
+				Content = new Label { Text = "Hello" }
+			};
+
+			await root.Dispatcher.DispatchAsync(() =>
+			{
+				var navPage = new NavigationPage(root);
+				var handler = CreateHandler(navPage);
+
+				// Calling DisconnectHandler more than once should be fine
+				// NavigationViewHandler uses OnDisconnectHandler lifecycle, not IDisposable
+				handler.DisconnectHandler();
+				handler.DisconnectHandler();
+			});
+		}
 	}
 }
