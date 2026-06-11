@@ -283,14 +283,21 @@ namespace Microsoft.Maui.DeviceTests
 			Window window;
 
 			if (useShell)
+			{
 				window = new Window(new Shell() { CurrentItem = windowPage });
+			}
 			else
+			{
+#if IOS || MACCATALYST
 				// Use setForMaui:false to force the old event-based navigation path.
 				// When UseiOSNavigationViewHandler is enabled globally, NavigationPage
 				// defaults to MauiNavigationImpl but NavigationRenderer doesn't implement
 				// the RequestNavigation command, causing PushAsync to hang.
 				window = new Window(new NavigationPage(false, windowPage));
-
+#else
+				window = new Window(new NavigationPage(windowPage));
+#endif
+			}
 
 			bool appearingFired = false;
 			await CreateHandlerAndAddToWindow<IWindowHandler>(window,
