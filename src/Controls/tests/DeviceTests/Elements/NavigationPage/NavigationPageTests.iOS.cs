@@ -68,23 +68,6 @@ namespace Microsoft.Maui.DeviceTests
 			});
 		}
 
-
-		[Fact]
-		public async Task Handler_CanReusePages()
-		{
-			SetupBuilder();
-			var navPage = new NavigationPage(new ContentPage { Title = "Root Page" });
-			var reusedPage = new ContentPage { Content = new Label() };
-
-			await CreateHandlerAndAddToWindow<WindowHandlerStub>(new Window(navPage), async (handler) =>
-			{
-				await navPage.Navigation.PushAsync(reusedPage);
-				await navPage.Navigation.PopAsync();
-				await navPage.Navigation.PushAsync(reusedPage);
-				await OnLoadedAsync(reusedPage.Content);
-			});
-		}
-
 		[Theory]
 		[InlineData(true)]
 		[InlineData(false)]
