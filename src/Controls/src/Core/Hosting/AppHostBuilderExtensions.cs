@@ -116,7 +116,7 @@ public static partial class AppHostBuilderExtensions
 		handlersCollection.AddHandler<SearchBar, SearchBarHandler>();
 		handlersCollection.AddHandler<Slider, SliderHandler>();
 		handlersCollection.AddHandler<DatePicker, DatePickerHandler>();
-        handlersCollection.AddHandler<Entry, EntryHandler>();
+		handlersCollection.AddHandler<Entry, EntryHandler>();
 #endif
 		handlersCollection.AddHandler<Application, ApplicationHandler>();
 		handlersCollection.AddHandler<BoxView, BoxViewHandler>();
@@ -196,7 +196,16 @@ public static partial class AppHostBuilderExtensions
 
 #if IOS || MACCATALYST
 		handlersCollection.AddHandler(typeof(NavigationPage), typeof(Handlers.Compatibility.NavigationRenderer));
-		handlersCollection.AddHandler(typeof(TabbedPage), typeof(Handlers.Compatibility.TabbedRenderer));
+
+		if (RuntimeFeature.UseiOSTabbedViewHandler)
+		{
+			handlersCollection.AddHandler<TabbedPage, TabbedViewHandler>();
+		}
+		else
+		{
+			handlersCollection.AddHandler(typeof(TabbedPage), typeof(Handlers.Compatibility.TabbedRenderer));
+		}
+
 		handlersCollection.AddHandler(typeof(FlyoutPage), typeof(Handlers.Compatibility.PhoneFlyoutPageRenderer));
 #endif
 

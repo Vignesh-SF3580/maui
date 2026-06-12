@@ -107,6 +107,7 @@ namespace Microsoft.Maui.Controls
 			void OnPagesChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
 			{
 				WireUnwireChanges(false);
+				_pendingPagesChangedArgs = e;
 				Handler?.UpdateValue(TabbedPage.ItemsSourceProperty.PropertyName);
 				WireUnwireChanges(true);
 			}
@@ -124,7 +125,8 @@ namespace Microsoft.Maui.Controls
 
 			void OnPagePropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
 			{
-				if (e.PropertyName == Page.TitleProperty.PropertyName)
+				if (e.PropertyName == Page.TitleProperty.PropertyName ||
+					e.PropertyName == Page.IconImageSourceProperty.PropertyName)
 					Handler?.UpdateValue(TabbedPage.ItemsSourceProperty.PropertyName);
 			}
 		}
