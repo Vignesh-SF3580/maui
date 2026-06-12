@@ -17,6 +17,11 @@ public class Issue19831 : _IssuesUITest
 	[Category(UITestCategories.ListView)]
 	public void ActionModeMenuShouldNotBeVisibleAfterSwitchingTab()
 	{
+		if (App is AppiumAndroidApp androidApp && !HelperExtensions.IsAndroidShellHandlerEnabled(androidApp))
+		{
+			Assert.Ignore("This test only runs with ShellHandler.");
+		}
+
 		_ = App.WaitForElement("Item1");
 
 		// 1. Open a context menu.

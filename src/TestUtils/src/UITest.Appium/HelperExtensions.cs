@@ -2375,6 +2375,37 @@ namespace UITest.Appium
 			return false;
 		}
 
+		// Cached result of the Android Shell-mode probe (Handler vs Renderer).
+		static bool? _cachedAndroidShellHandlerEnabled;
+
+		/// <summary>
+		/// Returns <c>true</c> when the Android test app is using the new ShellHandler,
+		/// <c>false</c> when using the legacy ShellRenderer.
+		/// Reads the "MauiAndroidShellMode" probe Label from the gallery page.
+		/// Falls back to <c>true</c> if the probe is unreadable.
+		/// </summary>
+		public static bool IsAndroidShellHandlerEnabled(AppiumAndroidApp androidApp)
+		{
+			if (!_cachedAndroidShellHandlerEnabled.HasValue)
+			{
+				try
+				{
+					var probe = androidApp.FindElement("MauiAndroidShellMode");
+					if (probe is not null && probe.TryGetText(out var text))
+					{
+						_cachedAndroidShellHandlerEnabled = string.Equals(text, "Handler", StringComparison.OrdinalIgnoreCase);
+					}
+				}
+				catch
+				{
+					// Probe not found — leave cache empty so a later call can retry.
+				}
+			}
+
+			// Default to true so we don't accidentally skip tests on a handler run.
+			return _cachedAndroidShellHandlerEnabled ?? true;
+		}
+
 		/// <summary>
 		/// Gets a custom query for the back arrow button based on the app type and a custom identifier.
 		/// Note that for Windows apps, the back button is not customizable, so the default identifier is used.
@@ -3041,18 +3072,18 @@ namespace UITest.Appium
 				{
 					// Signal cancellation (Appium driver won't respect it, but good hygiene)
 					cts.Cancel();
-					
+
 					// Warn about orphaned thread - the background task will continue blocking until
 					// the underlying Appium/WDA call times out or the process is killed
 					Debug.WriteLine($">>>>> Appium command timed out after {timeout.Value.TotalSeconds}s. Background thread may remain blocked until app is force-terminated.");
-					
+
 					// Observe any future exception from the orphaned task to prevent unobserved task exceptions
 					task.ContinueWith(t =>
 					{
 						if (t.Exception is not null)
 							Debug.WriteLine($">>>>> Orphaned Appium task faulted: {t.Exception.InnerException?.Message}");
 					}, TaskContinuationOptions.OnlyOnFaulted);
-					
+
 					throw new TimeoutException(
 						$"An Appium command did not complete within {timeout.Value.TotalSeconds}s. " +
 						"The application may be unresponsive (e.g., due to an infinite layout loop).");
