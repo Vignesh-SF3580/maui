@@ -13,6 +13,10 @@ namespace Microsoft.Maui.TestCases.Tests.Issues
 
 		public override string Issue => "Making Fragment Changes While App is Backgrounded Fails";
 
+		// Each [TestCase] mutates Window.Page and "restores" to the Issue11501 NavigationPage (not the
+		// gallery), so without relaunching, scenarios 3 and 4 can't navigate back to find their buttons.
+		protected override bool ResetAfterEachTest => true;
+
 		[TestCase("SwapMainPage", Category = UITestCategories.Navigation)]
 		[TestCase("SwapFlyoutPage", Category = UITestCategories.FlyoutPage)]
 		[TestCase("SwapTabbedPage", Category = UITestCategories.TabbedPage)]

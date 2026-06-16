@@ -5,6 +5,7 @@ using System.Collections.Specialized;
 using System.Threading.Tasks;
 using Microsoft.Maui.Controls.Platform;
 using Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific;
+using Microsoft.Maui.Platform;
 using UIKit;
 using PageUIStatusBarAnimation = Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific.UIStatusBarAnimation;
 using TabbedPageConfiguration = Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific.TabbedPage;
@@ -41,6 +42,11 @@ namespace Microsoft.Maui.Controls
 			}
 
 			return null;
+		}
+
+		partial void OnPagesChangedPartial(NotifyCollectionChangedEventArgs e)
+		{
+			_pendingPagesChangedArgs = e;
 		}
 
 		partial void OnHandlerChangingPartial(HandlerChangingEventArgs args)
@@ -628,6 +634,25 @@ namespace Microsoft.Maui.Controls
 			view.CurrentPage?.OnThisPlatform().SetPreferredStatusBarUpdateAnimation(animation);
 
 			manager.TabBarController?.SetNeedsStatusBarAppearanceUpdate();
+		}
+
+		// PropagateFlowDirection skips ITabbedView, so the base mapper flips only the parent
+		// UITabBarController.View. Mirror the legacy renderer: update the parent, then refresh
+		// each child page's UIView. Skip UITabBar — flipping it reverses the tab item order.
+		internal static void MapFlowDirection(ITabbedViewHandler handler, TabbedPage view)
+		{
+			if (handler.PlatformView is UIView platformView)
+			{
+				platformView.UpdateFlowDirection(view);
+			}
+
+			foreach (var child in view.InternalChildren)
+			{
+				if (child is Page page && page.Handler?.PlatformView is UIView childView)
+				{
+					childView.UpdateFlowDirection(page);
+				}
+			}
 		}
 
 		internal static void MapTranslucencyMode(ITabbedViewHandler handler, TabbedPage view)

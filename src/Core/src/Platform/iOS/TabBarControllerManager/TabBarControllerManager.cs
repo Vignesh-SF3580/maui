@@ -38,7 +38,14 @@ namespace Microsoft.Maui.Platform
         public UIViewController[] ViewControllers
         {
             get => _tabBarController.ViewControllers;
-            set => _tabBarController.ViewControllers = value;
+            set
+            {
+                _tabBarController.ViewControllers = value;
+                // UIKit resets CustomizableViewControllers to all VCs whenever ViewControllers is
+                // assigned, which re-shows the "Edit" button on the More tab. TabbedPage has never
+                // supported tab reordering, so clear it here to match the legacy renderer.
+                _tabBarController.CustomizableViewControllers = null;
+            }
         }
 
         /// <summary>

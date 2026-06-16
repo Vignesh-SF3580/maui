@@ -88,6 +88,7 @@ namespace Microsoft.Maui.Controls
 		}
 
 		partial void OnHandlerChangingPartial(HandlerChangingEventArgs args);
+		partial void OnPagesChangedPartial(System.Collections.Specialized.NotifyCollectionChangedEventArgs e);
 		private protected override void OnHandlerChangingCore(HandlerChangingEventArgs args)
 		{
 			base.OnHandlerChangingCore(args);
@@ -107,7 +108,7 @@ namespace Microsoft.Maui.Controls
 			void OnPagesChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
 			{
 				WireUnwireChanges(false);
-				_pendingPagesChangedArgs = e;
+				OnPagesChangedPartial(e);
 				Handler?.UpdateValue(TabbedPage.ItemsSourceProperty.PropertyName);
 				WireUnwireChanges(true);
 			}
