@@ -725,13 +725,11 @@ internal class TabbedViewManager
         }
 
         var menu = _bottomNavigationView.Menu;
+        menu.Clear();
 
         var tabs = Element.Tabs;
         if (tabs is null || tabs.Count == 0)
         {
-            menu.Clear();
-            _bottomNavigationView.SetOnItemSelectedListener(null);
-            _bottomNavigationView.SetOnItemReselectedListener(null);
             return;
         }
 
@@ -745,24 +743,43 @@ internal class TabbedViewManager
 
         _bottomNavigationView.Visibility = ViewStates.Visible;
 
-        // Delegate to BottomNavigationViewUtils.SetupMenu which does incremental updates
-        // (reuses existing IMenuItem objects at unchanged positions, preserving identity).
-        // This matches the renderer's ShellItemRenderer.SetupMenu behavior.
-        var items = new List<(string title, ImageSource icon, bool tabEnabled)>();
-        for (int i = 0; i < tabs.Count; i++)
+        int maxItems = Math.Min(_bottomNavigationView.MaxItemCount, BottomNavigationViewUtils.MaxBottomNavigationItems);
+        bool showMore = tabs.Count > maxItems;
+        int end = showMore ? maxItems - 1 : tabs.Count;
+
+        for (int i = 0; i < end; i++)
         {
             var tab = tabs[i];
-            items.Add((tab.Title, tab.Icon as ImageSource, tab.IsEnabled));
+            var title = !string.IsNullOrWhiteSpace(tab.Title) ? tab.Title : $"Tab {i + 1}";
+            var menuItem = menu.Add(0, i, i, title);
+
+            if (menuItem is null)
+            {
+                continue;
+            }
+
+            if (!tab.IsEnabled)
+            {
+                menuItem.SetEnabled(false);
+            }
+
+            LoadBottomNavIconAsync(menuItem, tab);
         }
 
+        // Add "More" overflow item if needed
+        if (showMore)
+        {
+            var moreItem = menu.Add(0, BottomNavigationViewUtils.MoreTabId, maxItems - 1, "More");
+            moreItem?.SetIcon(Resource.Drawable.abc_ic_menu_overflow_material);
+        }
+
+        // Set initial selection using pre-computed index (avoids wrapper comparison issues)
         var currentIndex = Element.CurrentTabIndex;
-        BottomNavigationViewUtils.SetupMenu(
-            menu,
-            _bottomNavigationView.MaxItemCount,
-            items,
-            currentIndex,
-            _bottomNavigationView,
-            _context);
+        if (currentIndex >= 0 && currentIndex < tabs.Count)
+        {
+            int targetId = currentIndex >= end ? BottomNavigationViewUtils.MoreTabId : currentIndex;
+            _bottomNavigationView.SelectedItemId = targetId;
+        }
 
         _bottomNavigationView.SetShiftMode(false, false);
 
@@ -771,6 +788,9 @@ internal class TabbedViewManager
             Element.CurrentTab = tabs[0];
         }
 
+        // Set listener AFTER menu population and initial selection.
+        // Adding items to an empty BNV auto-selects item 0, firing OnNavigationItemSelected
+        // before we establish the correct selection — poisoning Shell's CurrentItem.
         _bottomNavigationView.SetOnItemSelectedListener(_listeners);
         _bottomNavigationView.SetOnItemReselectedListener(_listeners);
     }

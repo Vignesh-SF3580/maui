@@ -142,21 +142,9 @@ namespace Microsoft.Maui.DeviceTests
 
 				if (currentPage?.Handler?.PlatformView is AView pagePlatformView)
 				{
-					// In the new handler architecture, there's a nested CoordinatorLayout
-					// (shellitem_coordinator) that doesn't contain the toolbar.
-					// The toolbar is at the NRM level (outer CoordinatorLayout from navigationlayout.axml).
-					// Walk up to find a CoordinatorLayout that contains a MaterialToolbar.
-					var coordinator = pagePlatformView.GetParentOfType<CoordinatorLayout>();
-					while (coordinator is not null)
-					{
-						var toolbar = coordinator.GetFirstChildOfType<MaterialToolbar>();
-						if (toolbar is not null)
-						{
-							return toolbar;
-						}
-						// Try the next CoordinatorLayout up
-						coordinator = (coordinator.Parent as AView)?.GetParentOfType<CoordinatorLayout>();
-					}
+					var parentContainer = pagePlatformView.GetParentOfType<CoordinatorLayout>();
+					var toolbar = parentContainer?.GetFirstChildOfType<MaterialToolbar>();
+					return toolbar;
 				}
 
 				return null;

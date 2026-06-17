@@ -316,14 +316,6 @@ namespace Microsoft.Maui.Controls.Handlers
                 return;
             }
 
-            // Remove old appearance observer BEFORE SetVirtualView changes VirtualView.
-            // Must use _shellContext.Shell (cached) instead of FindParentOfType<Shell>()
-            // because Items.Clear() nulls the old item's Parent before we get here.
-            if (_shellContext is not null)
-            {
-                ((IShellController)_shellContext.Shell).RemoveAppearanceObserver(this);
-            }
-
             // Set flag to preserve fragment-level resources during disconnect/connect cycle.
             // SetVirtualView triggers DisconnectHandler → ConnectHandler. Without this flag,
             // DisconnectHandler would destroy toolbar, adapter, and fragment references.
@@ -785,9 +777,8 @@ namespace Microsoft.Maui.Controls.Handlers
                 SetupTabbedViewManager();
             }
 
-            // TabbedViewManager subscribes to TabsChanged (which wraps
-            // ItemsCollectionChanged), so it handles the bottom nav menu update itself.
-            // No need to call RefreshTabs() here — that would cause a double-rebuild.
+            // Rebuild the bottom navigation menu for the updated sections via TabbedViewManager
+            _tabbedViewManager?.RefreshTabs();
             UpdateTabBarVisibility();
 
             // Signal that the adapter was just rebuilt. The next SwitchToSection call
@@ -1091,6 +1082,9 @@ namespace Microsoft.Maui.Controls.Handlers
             // Update navigation state first
             _toolbarTracker.CanNavigateBack = canNavigateBack;
 
+            // Update the page reference
+            _toolbarTracker.Page = page;
+
             // Cache shell reference to avoid repeated FindParentOfType calls
             var shell = VirtualView?.FindParentOfType<Shell>();
 
@@ -1099,21 +1093,14 @@ namespace Microsoft.Maui.Controls.Handlers
                 return;
             }
 
-            // Apply toolbar configuration BEFORE setting Page.
-            // Setting Page triggers OnPageChanged → UpdateLeftBarButtonItem which reads
-            // _toolbar.BackButtonVisible. We must ensure _shellToolbar has the latest
-            // state from shell.Toolbar (including BackButtonVisible) before that read.
+            // Apply toolbar configuration
             if (_shellToolbar is not null)
             {
                 ShellToolbarTracker.ApplyToolbarChanges(shell.Toolbar, _shellToolbar);
                 _toolbarTracker.SetToolbar(_shellToolbar);
             }
 
-            // NOW set the page — triggers OnPageChanged → UpdateLeftBarButtonItem
-            // At this point _shellToolbar.BackButtonVisible is already correct.
-            _toolbarTracker.Page = page;
-
-            // Update shell toolbar (recalculates visibility, title, etc.)
+            // Update shell toolbar
             if (shell.Toolbar is ShellToolbar shellToolbar)
             {
                 shellToolbar.ApplyChanges();
