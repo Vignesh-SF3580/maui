@@ -64,20 +64,6 @@
 			rootLayout.Add(corePageView);
 			Grid.SetRow(corePageView, 3);
 
-			// Probe element for UI tests to detect Android Shell architecture (Handler vs Renderer).
-			// Read by HelperExtensions.IsAndroidShellHandlerEnabled via Appium.
-			// Visually inert (1px tall, transparent) but accessible to Appium.
-			rootLayout.Add(new Label
-			{
-				AutomationId = "MauiAndroidShellMode",
-				Text = AppContext.TryGetSwitch("Microsoft.Maui.RuntimeFeature.UseAndroidShellHandlers", out var useHandler) && useHandler
-					? "Handler"
-					: "Renderer",
-				HeightRequest = 1,
-				TextColor = Colors.Transparent,
-				BackgroundColor = Colors.Transparent
-			});
-
 			AutomationId = "Gallery";
 
 			Content = rootLayout;
