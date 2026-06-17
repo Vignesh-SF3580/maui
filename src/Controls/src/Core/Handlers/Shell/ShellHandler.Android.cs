@@ -56,6 +56,11 @@ namespace Microsoft.Maui.Controls.Handlers
         // Pending fragment transaction (from RunOrWaitForResume, same as FlyoutViewHandler)
         IDisposable? _pendingFragment;
 
+        // Cached Shell, mirrors the renderer's `Element` backing field.
+        // Used by IShellContext.Shell so we don't go through the throwing
+        // VirtualView getter during teardown. See ShellRenderer.cs:132.
+        Shell? _shell;
+
         protected override MauiDrawerLayout CreatePlatformView()
         {
             // Create MauiDrawerLayout (same as FlyoutViewHandler)
@@ -88,6 +93,9 @@ namespace Microsoft.Maui.Controls.Handlers
         protected override void ConnectHandler(MauiDrawerLayout platformView)
         {
             base.ConnectHandler(platformView);
+
+            // Cache Shell so IShellContext.Shell mirrors the renderer's `Element` field.
+            _shell = VirtualView;
 
             // Window insets setup for the CoordinatorLayout (same as FlyoutViewHandler)
             if (_navigationRoot is CoordinatorLayout cl)
@@ -155,6 +163,10 @@ namespace Microsoft.Maui.Controls.Handlers
             platformView.Disconnect();
 
             base.DisconnectHandler(platformView);
+
+            // Clear AFTER base.DisconnectHandler so late disposers can still
+            // resolve IShellContext.Shell. Matches renderer Dispose lifetime.
+            _shell = null;
         }
 
         void OnFlyoutPresentedChanged(bool isPresented)
@@ -626,7 +638,9 @@ namespace Microsoft.Maui.Controls.Handlers
         // Return MauiDrawerLayout (which IS a DrawerLayout)
         DrawerLayout IShellContext.CurrentDrawerLayout => MauiDrawerLayout;
 
-        Shell IShellContext.Shell => VirtualView;
+        // Returns the cached Shell instead of VirtualView, which throws when null.
+        // Matches the renderer (ShellRenderer.cs:41 `=> Element;`).
+        Shell? IShellContext.Shell => _shell;
 
         IShellObservableFragment IShellContext.CreateFragmentForPage(Page page)
         {
