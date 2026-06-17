@@ -13,7 +13,11 @@ using AndroidX.Core.View;
 #endif
 
 #if ANDROID || IOS || MACCATALYST
+#if ANDROID
+using ShellHandler = Microsoft.Maui.Controls.Handlers.ShellHandler;
+#else
 using ShellHandler = Microsoft.Maui.Controls.Handlers.Compatibility.ShellRenderer;
+#endif
 using Microsoft.Maui.Graphics;
 using Microsoft.Maui.Platform;
 using System.Threading;

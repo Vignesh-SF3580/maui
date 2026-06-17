@@ -19,7 +19,11 @@ using Xunit;
 using static Microsoft.Maui.DeviceTests.AssertHelpers;
 
 #if ANDROID || IOS || MACCATALYST
+#if ANDROID
+using ShellHandler = Microsoft.Maui.Controls.Handlers.ShellHandler;
+#else
 using ShellHandler = Microsoft.Maui.Controls.Handlers.Compatibility.ShellRenderer;
+#endif
 #endif
 
 #if IOS || MACCATALYST
@@ -98,7 +102,7 @@ namespace Microsoft.Maui.DeviceTests
 				Shell.SetSearchHandler(shell, new SearchHandler() { SearchBoxVisibility = SearchBoxVisibility.Expanded });
 			});
 
-			await CreateHandlerAndAddToWindow<ShellRenderer>(shell, async (handler) =>
+			await CreateHandlerAndAddToWindow<ShellHandler>(shell, async (handler) =>
 			{
 				await OnLoadedAsync(shell.CurrentPage);
 				await OnNavigatedToAsync(shell.CurrentPage);
