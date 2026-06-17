@@ -9,11 +9,7 @@ using Microsoft.Maui.Graphics;
 using Xunit;
 
 #if ANDROID || IOS || MACCATALYST
-#if ANDROID
-using ShellHandler = Microsoft.Maui.Controls.Handlers.ShellHandler;
-#else
 using ShellHandler = Microsoft.Maui.Controls.Handlers.Compatibility.ShellRenderer;
-#endif
 #elif WINDOWS
 using Microsoft.Maui.Controls.Handlers;
 #endif

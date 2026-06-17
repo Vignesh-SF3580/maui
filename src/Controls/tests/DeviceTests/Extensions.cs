@@ -11,11 +11,7 @@ using Microsoft.Maui.Hosting;
 using Microsoft.Maui.Platform;
 using Xunit;
 #if ANDROID || IOS || MACCATALYST
-#if ANDROID
-using ShellHandler = Microsoft.Maui.Controls.Handlers.ShellHandler;
-#else
 using ShellHandler = Microsoft.Maui.Controls.Handlers.Compatibility.ShellRenderer;
-#endif
 #endif
 using static Microsoft.Maui.DeviceTests.AssertHelpers;
 
@@ -50,12 +46,6 @@ namespace Microsoft.Maui.DeviceTests
 			handlers.TryAddHandler(typeof(ShellItem), typeof(ShellItemHandler));
 			handlers.TryAddHandler(typeof(ShellSection), typeof(ShellSectionHandler));
 			handlers.TryAddHandler(typeof(ShellContent), typeof(ShellContentHandler));
-#elif ANDROID
-			// Required when UseAndroidShellHandlers is true (the new ShellHandler
-			// resolves these sub-handlers via the registry; the legacy ShellRenderer
-			// did this internally).
-			handlers.TryAddHandler(typeof(ShellItem), typeof(ShellItemHandler));
-			handlers.TryAddHandler(typeof(ShellSection), typeof(ShellSectionHandler));
 #endif
 		}
 	}

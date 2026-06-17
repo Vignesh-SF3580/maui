@@ -23,8 +23,8 @@ namespace Microsoft.Maui.DeviceTests
 		BottomNavigationView GetTab(ShellSection item)
 		{
 			var shell = item.FindParentOfType<Shell>();
-			var handler = (ShellHandler)shell.Handler;
-			var bottomView = GetDrawerLayout(handler).GetFirstChildOfType<BottomNavigationView>();
+			var renderer = (ShellRenderer)shell.Handler;
+			var bottomView = GetDrawerLayout(renderer).GetFirstChildOfType<BottomNavigationView>();
 			var menu = bottomView.Menu;
 			var index = shell.CurrentItem.Items.IndexOf(item);
 

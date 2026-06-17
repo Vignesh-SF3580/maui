@@ -135,7 +135,7 @@ namespace Microsoft.Maui.DeviceTests
 				handler = wh.VirtualView.Content.Handler;
 			}
 
-			if (handler is Microsoft.Maui.Controls.Handlers.ShellHandler sr)
+			if (handler is Microsoft.Maui.Controls.Handlers.Compatibility.ShellRenderer sr)
 			{
 				var shell = handler.VirtualView as Shell;
 				var currentPage = shell.CurrentPage;
