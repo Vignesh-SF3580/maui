@@ -20,7 +20,6 @@ using ShellHandler = Microsoft.Maui.Controls.Handlers.Compatibility.ShellRendere
 #if IOS || MACCATALYST
 using NavigationViewHandler = Microsoft.Maui.Controls.Handlers.Compatibility.NavigationRenderer;
 using FlyoutViewHandler = Microsoft.Maui.Controls.Handlers.Compatibility.PhoneFlyoutPageRenderer;
-using TabbedViewHandler = Microsoft.Maui.Controls.Handlers.Compatibility.TabbedRenderer;
 #endif
 
 namespace Microsoft.Maui.DeviceTests

@@ -29,7 +29,7 @@ namespace Microsoft.Maui.DeviceTests
 					handlers.AddHandler(typeof(Toolbar), typeof(ToolbarHandler));
 #if IOS || MACCATALYST
 					handlers.AddHandler(typeof(NavigationPage), typeof(NavigationRenderer));
-					handlers.AddHandler(typeof(TabbedPage), typeof(TabbedRenderer));
+					handlers.AddHandler(typeof(TabbedPage), typeof(TabbedViewHandler));
 #else
 					handlers.AddHandler(typeof(NavigationPage), typeof(NavigationViewHandler));
 					handlers.AddHandler(typeof(TabbedPage), typeof(TabbedViewHandler));

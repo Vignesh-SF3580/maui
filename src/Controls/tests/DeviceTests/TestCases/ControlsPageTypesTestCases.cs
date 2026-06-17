@@ -96,7 +96,7 @@ namespace Microsoft.Maui.DeviceTests.TestCases
 				handlers.AddHandler(typeof(Controls.Toolbar), typeof(ToolbarHandler));
 				handlers.AddHandler(typeof(FlyoutPage), typeof(FlyoutViewHandler));
 #if IOS || MACCATALYST
-				handlers.AddHandler(typeof(TabbedPage), typeof(TabbedRenderer));
+				handlers.AddHandler(typeof(TabbedPage), typeof(TabbedViewHandler));
 				handlers.AddHandler(typeof(NavigationPage), typeof(NavigationRenderer));
 #else
 				handlers.AddHandler(typeof(TabbedPage), typeof(TabbedViewHandler));

@@ -15,9 +15,6 @@ using Microsoft.Maui.Handlers;
 using Microsoft.Maui.Hosting;
 using Microsoft.Maui.Platform;
 using Xunit;
-#if IOS
-using TabbedViewHandler = Microsoft.Maui.Controls.Handlers.Compatibility.TabbedRenderer;
-#endif
 #if WINDOWS
 using WSolidColorBrush = Microsoft.UI.Xaml.Media.SolidColorBrush;
 #endif
@@ -41,7 +38,7 @@ namespace Microsoft.Maui.DeviceTests
 					handlers.AddHandler<Label, LabelHandler>();
 
 #if IOS || MACCATALYST
-					handlers.AddHandler(typeof(TabbedPage), typeof(TabbedRenderer));
+					handlers.AddHandler(typeof(TabbedPage), typeof(TabbedViewHandler));
 					handlers.AddHandler(typeof(NavigationPage), typeof(NavigationRenderer));
 #else
 					handlers.AddHandler(typeof(TabbedPage), typeof(TabbedViewHandler));
@@ -378,7 +375,7 @@ namespace Microsoft.Maui.DeviceTests
 		}
 #endif
 
-#if IOS 
+#if IOS
 		[Theory(Skip = "Test doesn't work on iOS yet; probably because of https://github.com/dotnet/maui/issues/10591")]
 #elif WINDOWS
 		[Theory(Skip = "Test doesn't work on Windows")]

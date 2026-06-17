@@ -88,7 +88,7 @@ public class MemoryTests : ControlsHandlerTestBase
 
 #if IOS || MACCATALYST
 				handlers.AddHandler<NavigationPage, NavigationRenderer>();
-				handlers.AddHandler<TabbedPage, TabbedRenderer>();
+				handlers.AddHandler<TabbedPage, TabbedViewHandler>();
 				handlers.AddHandler<FlyoutPage, PhoneFlyoutPageRenderer>();
 #else
 				handlers.AddHandler<NavigationPage, NavigationViewHandler>();
@@ -153,7 +153,7 @@ public class MemoryTests : ControlsHandlerTestBase
 		await AssertionExtensions.WaitForGC(references.ToArray());
 	}
 
-	#if ANDROID
+#if ANDROID
 	[Fact("FlyoutPage Detail Navigation Does Not Leak")]
 	public async Task FlyoutPageDetailNavigationDoesNotLeak()
 	{
