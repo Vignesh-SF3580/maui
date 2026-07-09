@@ -119,5 +119,15 @@ namespace Microsoft.Maui.Handlers
 		{
 			// Lifecycle: page disappearing — let framework handle Disappearing event
 		}
+
+		bool IFlyoutContainerDelegate.GetCurrentIsPresented()
+		{
+			return VirtualView?.IsPresented ?? false;
+		}
+
+		bool IFlyoutContainerDelegate.GetIgnoreSafeArea()
+		{
+			return VirtualView is ISafeAreaView sav && sav.IgnoreSafeArea;
+		}
 	}
 }

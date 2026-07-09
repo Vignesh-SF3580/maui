@@ -119,10 +119,17 @@ internal class FlyoutContainerManager
 		if (!_initialLayoutFinished)
 		{
 			_initialLayoutFinished = true;
+
+			// Read IsPresented from virtual view at layout time, as the value
+			// may differ from _isPresented due to FlyoutPage internal validation.
+			bool isPresented = _isPresented;
+			if (_delegateRef.TryGetTarget(out var del))
+				isPresented = del.GetCurrentIsPresented();
+
 			if (ShouldShowSplitMode)
-				SetPresented(true, animated: false, notifyDelegate: true);
+				SetPresented(true, animated: false, notifyDelegate: false);
 			else
-				SetPresented(_isPresented, animated: false, notifyDelegate: false);
+				SetPresented(isPresented, animated: false, notifyDelegate: false);
 		}
 	}
 
@@ -131,15 +138,20 @@ internal class FlyoutContainerManager
 	/// </summary>
 	internal void OnParentViewWillTransitionToSize(CGSize toSize)
 	{
+
 		if (!OperatingSystem.IsMacCatalyst())
 		{
 			bool shouldSplit = ShouldShowSplitMode;
 			if (FlyoutOverlapsDetailsInPopoverMode)
 			{
-				SetPresented(shouldSplit, animated: true, notifyDelegate: true);
+				// notifyDelegate: false — rotation is platform-initiated.
+				// Writing back IsPresented during rotation can throw InvalidOperationException
+				// when ShouldShowSplitMode is still in transition.
+				SetPresented(shouldSplit, animated: true, notifyDelegate: false);
 			}
 			else if (!shouldSplit && _isPresented)
 			{
+				// iPhone rotation: notify delegate so virtual view stays in sync.
 				SetPresented(false, animated: true, notifyDelegate: true);
 			}
 		}
@@ -242,8 +254,9 @@ internal class FlyoutContainerManager
 			return;
 		}
 
-		if (!isPresented && ShouldShowSplitMode)
-			return; // Cannot close in split mode
+		// Cannot close when Locked (Split) or in split mode
+		if (!isPresented && (_flyoutBehavior == FlyoutBehavior.Locked || ShouldShowSplitMode))
+			return;
 
 		SetPresented(isPresented, animated, notifyDelegate: false);
 	}
@@ -252,13 +265,21 @@ internal class FlyoutContainerManager
 	{
 		_flyoutBehavior = behavior;
 
+		// Before initial layout, just store the behavior.
+		if (!_initialLayoutFinished)
+			return;
+
 		bool shouldPresent = ShouldShowSplitMode;
 		if (behavior == FlyoutBehavior.Flyout || behavior == FlyoutBehavior.Disabled)
 			shouldPresent = false;
+		else if (behavior == FlyoutBehavior.Locked)
+			shouldPresent = true; // Locked = always presented (even on iPhone)
 
 		if (shouldPresent != _isPresented)
 		{
-			SetPresented(shouldPresent, animated: true, notifyDelegate: true);
+			// notifyDelegate: false — behavior changes are platform-initiated.
+			// Writing back IsPresented can throw InvalidOperationException.
+			SetPresented(shouldPresent, animated: true, notifyDelegate: false);
 			NotifyLeftBarButtonNeedsUpdate();
 		}
 		else
@@ -342,8 +363,10 @@ internal class FlyoutContainerManager
 
 		var frame = parentView.Bounds;
 
-		// Apply safe area insets (for notch devices)
-		if (OperatingSystem.IsIOSVersionAtLeast(11))
+		// Apply safe area insets when the page has opted in (IgnoreSafeArea = false).
+		// By default on iOS, IgnoreSafeArea = true so this is skipped.
+		bool ignoreSafeArea = _delegateRef.TryGetTarget(out var safeAreaDel) && safeAreaDel.GetIgnoreSafeArea();
+		if (OperatingSystem.IsIOSVersionAtLeast(11) && !ignoreSafeArea)
 		{
 			var safeAreaTop = parentView.SafeAreaInsets.Top;
 			if (safeAreaTop > 0)
@@ -466,7 +489,7 @@ internal class FlyoutContainerManager
 		if (forOverlap)
 			return 320;
 
-		// Phone default: 80% of the shorter dimension
+		// Phone default: 80% of the shorter dimension, truncated to int.
 		return (nfloat)(int)(Math.Min(containerFrame.Width, containerFrame.Height) * 0.8);
 	}
 

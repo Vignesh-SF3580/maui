@@ -39,4 +39,17 @@ internal interface IFlyoutContainerDelegate
     /// Kept for future-proofing if manual lifecycle notification is needed.
     /// </summary>
     void OnViewWillDisappear();
+
+    /// <summary>
+    /// Returns the current IsPresented value from the virtual view.
+    /// Used during initial layout to read the developer's intended value.
+    /// </summary>
+    bool GetCurrentIsPresented();
+
+    /// <summary>
+    /// Returns whether the virtual view has opted out of safe area insets
+    /// (<see cref="ISafeAreaView.IgnoreSafeArea"/>). Used during layout to decide
+    /// whether the flyout/detail container frame should be inset from the safe area.
+    /// </summary>
+    bool GetIgnoreSafeArea();
 }
