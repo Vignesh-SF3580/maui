@@ -29,13 +29,15 @@ namespace Microsoft.Maui.Handlers
 
 		protected override void DisconnectHandler(UIView platformView)
 		{
-			if (VirtualView is not null)
-				ControlsConfiguration?.OnHandlerDisconnected(VirtualView);
-
+			// TearDown() before OnHandlerDisconnected so the unsubscribe below runs last and sticks.
 			_manager?.TearDown();
 			_manager = null;
 			_containerVC = null;
 			ViewController = null;
+
+			if (VirtualView is not null)
+				ControlsConfiguration?.OnHandlerDisconnected(VirtualView);
+
 			base.DisconnectHandler(platformView);
 		}
 
