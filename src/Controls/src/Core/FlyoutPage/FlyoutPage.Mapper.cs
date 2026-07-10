@@ -43,13 +43,17 @@ namespace Microsoft.Maui.Controls
 		internal static void MapPrefersHomeIndicatorAutoHiddenProperty(IFlyoutViewHandler handler, IFlyoutView view)
 		{
 			if (handler is IPlatformViewHandler { ViewController: { } vc })
+			{
 				vc.SetNeedsUpdateOfHomeIndicatorAutoHidden();
+			}
 		}
 
 		internal static void MapPrefersPrefersStatusBarHiddenProperty(IFlyoutViewHandler handler, IFlyoutView view)
 		{
 			if (handler is IPlatformViewHandler { ViewController: { } vc })
+			{
 				vc.SetNeedsStatusBarAppearanceUpdate();
+			}
 		}
 #endif
 

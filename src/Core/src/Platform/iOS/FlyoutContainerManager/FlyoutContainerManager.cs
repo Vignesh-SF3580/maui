@@ -80,7 +80,9 @@ internal class FlyoutContainerManager
 		get
 		{
 			if (!FlyoutOverlapsDetailsInPopoverMode)
+			{
 				return false; // iPhone never splits
+			}
 
 			// Controls (FlyoutPage.cs) already decides split vs. non-split based on
 			// FlyoutLayoutBehavior + orientation, and passes us the result as
@@ -128,12 +130,18 @@ internal class FlyoutContainerManager
 			// may differ from _isPresented due to FlyoutPage internal validation.
 			bool isPresented = _isPresented;
 			if (_delegateRef.TryGetTarget(out var del))
+			{
 				isPresented = del.GetCurrentIsPresented();
+			}
 
 			if (ShouldShowSplitMode)
+			{
 				SetPresented(true, animated: false, notifyDelegate: false);
+			}
 			else
+			{
 				SetPresented(isPresented, animated: false, notifyDelegate: false);
+			}
 		}
 	}
 
@@ -169,7 +177,9 @@ internal class FlyoutContainerManager
 	internal void OnViewDidAppear()
 	{
 		if (_delegateRef.TryGetTarget(out var del))
+		{
 			del.OnViewDidAppear();
+		}
 	}
 
 	/// <summary>
@@ -178,7 +188,9 @@ internal class FlyoutContainerManager
 	internal void OnViewWillDisappear()
 	{
 		if (_delegateRef.TryGetTarget(out var del))
+		{
 			del.OnViewWillDisappear();
+		}
 	}
 
 	// ═══════════════════════════════════════════════
@@ -188,7 +200,9 @@ internal class FlyoutContainerManager
 	internal void SetFlyoutViewController(UIViewController? flyoutVC)
 	{
 		if (_parentVCRef is null || !_parentVCRef.TryGetTarget(out var parentVC))
+		{
 			return;
+		}
 
 		// Remove old
 		if (_flyoutVC is not null)
@@ -218,7 +232,9 @@ internal class FlyoutContainerManager
 	internal void SetDetailViewController(UIViewController? detailVC)
 	{
 		if (_parentVCRef is null || !_parentVCRef.TryGetTarget(out var parentVC))
+		{
 			return;
+		}
 
 		// Remove old
 		if (_detailVC is not null)
@@ -264,7 +280,9 @@ internal class FlyoutContainerManager
 
 		// Cannot close when Locked (Split) or in split mode
 		if (!isPresented && (_flyoutBehavior == FlyoutBehavior.Locked || ShouldShowSplitMode))
+		{
 			return;
+		}
 
 		SetPresented(isPresented, animated, notifyDelegate: false);
 	}
@@ -275,13 +293,19 @@ internal class FlyoutContainerManager
 
 		// Before initial layout, just store the behavior.
 		if (!_initialLayoutFinished)
+		{
 			return;
+		}
 
 		bool shouldPresent = ShouldShowSplitMode;
 		if (behavior == FlyoutBehavior.Flyout || behavior == FlyoutBehavior.Disabled)
+		{
 			shouldPresent = false;
+		}
 		else if (behavior == FlyoutBehavior.Locked)
+		{
 			shouldPresent = true; // Locked = always presented (even on iPhone)
+		}
 
 		if (shouldPresent != _isPresented)
 		{
@@ -301,7 +325,9 @@ internal class FlyoutContainerManager
 	{
 		_flyoutWidth = width;
 		if (_initialLayoutFinished)
+		{
 			LayoutPanes(animated: false);
+		}
 	}
 
 	internal void UpdateIsGestureEnabled(bool enabled)
@@ -314,7 +340,9 @@ internal class FlyoutContainerManager
 	{
 		_flowDirection = direction;
 		if (_initialLayoutFinished)
+		{
 			LayoutPanes(animated: false);
+		}
 	}
 
 	internal void UpdateApplyShadow(bool applyShadow)
@@ -367,7 +395,9 @@ internal class FlyoutContainerManager
 	{
 		var parentView = ParentView;
 		if (parentView is null || _flyoutContainerView is null || _detailContainerView is null)
+		{
 			return;
+		}
 
 		var frame = parentView.Bounds;
 
@@ -389,13 +419,19 @@ internal class FlyoutContainerManager
 
 		// Calculate flyout width
 		if (FlyoutOverlapsDetailsInPopoverMode)
+		{
 			flyoutFrame.Width = GetFlyoutWidth(frame, forOverlap: true);
+		}
 		else
+		{
 			flyoutFrame.Width = GetFlyoutWidth(frame, forOverlap: false);
+		}
 
 		// RTL: flyout on right side (phone mode only)
 		if (IsRTL && !FlyoutOverlapsDetailsInPopoverMode)
+		{
 			flyoutFrame.X = (int)(frame.Width - flyoutFrame.Width);
+		}
 
 		// Calculate detail frame
 		var detailFrame = frame;
@@ -404,21 +440,31 @@ internal class FlyoutContainerManager
 			if (!FlyoutOverlapsDetailsInPopoverMode || ShouldShowSplitMode)
 			{
 				if (IsRTL && ShouldShowSplitMode)
+				{
 					detailFrame.X = 0;
+				}
 				else
+				{
 					detailFrame.X += flyoutFrame.Width;
+				}
 			}
 
 			if (FlyoutOverlapsDetailsInPopoverMode && ShouldShowSplitMode)
+			{
 				detailFrame.Width -= flyoutFrame.Width;
+			}
 
 			if (_applyShadow)
+			{
 				opacity = 0.5f;
+			}
 		}
 
 		// RTL detail offset (phone mode)
 		if (IsRTL && !FlyoutOverlapsDetailsInPopoverMode)
+		{
 			detailFrame.X = detailFrame.X * -1;
+		}
 
 		// Animate or set detail frame
 		var detailChildView = _detailVC?.View;
@@ -428,14 +474,18 @@ internal class FlyoutContainerManager
 			{
 				_detailContainerView.Frame = detailFrame;
 				if (detailChildView is not null)
+				{
 					detailChildView.Layer.Opacity = (float)opacity;
+				}
 			}, () => { });
 		}
 		else
 		{
 			_detailContainerView.Frame = detailFrame;
 			if (detailChildView is not null)
+			{
 				detailChildView.Layer.Opacity = (float)opacity;
+			}
 		}
 
 		// Calculate flyout frame for overlap mode (iPad popover)
@@ -444,16 +494,24 @@ internal class FlyoutContainerManager
 			if (!_isPresented)
 			{
 				if (!IsRTL)
+				{
 					flyoutFrame.X -= flyoutFrame.Width;
+				}
 				else
+				{
 					flyoutFrame.X = frame.Width;
+				}
 			}
 			else if (IsRTL)
 			{
 				if (ShouldShowSplitMode)
+				{
 					flyoutFrame.X = detailFrame.Width;
+				}
 				else
+				{
 					flyoutFrame.X = frame.Width - flyoutFrame.Width;
+				}
 			}
 		}
 
@@ -464,7 +522,9 @@ internal class FlyoutContainerManager
 			{
 				_flyoutContainerView.Frame = flyoutFrame;
 				if (detailChildView is not null)
+				{
 					detailChildView.Layer.Opacity = (float)opacity;
+				}
 			}, () => { });
 		}
 		else
@@ -480,22 +540,30 @@ internal class FlyoutContainerManager
 		NotifyLayoutBoundsChanged(flyoutFrame, detailFrame, frame);
 
 		if (_isPresented)
+		{
 			UpdateClickOffViewFrame();
+		}
 	}
 
 	static void ResizeChildToContainer(UIViewController? childVC, UIView containerView)
 	{
 		if (childVC?.View is not null)
+		{
 			childVC.View.Frame = containerView.Bounds;
+		}
 	}
 
 	nfloat GetFlyoutWidth(CGRect containerFrame, bool forOverlap)
 	{
 		if (_flyoutWidth > 0)
+		{
 			return (nfloat)_flyoutWidth;
+		}
 
 		if (forOverlap)
+		{
 			return 320;
+		}
 
 		// Phone default: 80% of the shorter dimension, truncated to int.
 		return (nfloat)(int)(Math.Min(containerFrame.Width, containerFrame.Height) * 0.8);
@@ -521,7 +589,9 @@ internal class FlyoutContainerManager
 		if (notifyDelegate)
 		{
 			if (_delegateRef.TryGetTarget(out var del))
+			{
 				del.OnPresentedChangedByGesture(value);
+			}
 		}
 	}
 
@@ -532,7 +602,9 @@ internal class FlyoutContainerManager
 	void UpdateClickOffView()
 	{
 		if (_clickOffView is null)
+		{
 			return;
+		}
 
 		if (FlyoutOverlapsDetailsInPopoverMode && ShouldShowSplitMode)
 		{
@@ -541,19 +613,27 @@ internal class FlyoutContainerManager
 		}
 
 		if (_isPresented)
+		{
 			AddClickOffView();
+		}
 		else
+		{
 			RemoveClickOffView();
+		}
 	}
 
 	void AddClickOffView()
 	{
 		var parentView = ParentView;
 		if (_clickOffView is null || parentView is null)
+		{
 			return;
+		}
 
 		if (_clickOffView.Superview == parentView)
+		{
 			return;
+		}
 
 		parentView.AddSubview(_clickOffView);
 		UpdateClickOffViewFrame();
@@ -562,7 +642,9 @@ internal class FlyoutContainerManager
 	void UpdateClickOffViewFrame()
 	{
 		if (_clickOffView is null || _flyoutContainerView is null || _detailContainerView is null)
+		{
 			return;
+		}
 
 		if (FlyoutOverlapsDetailsInPopoverMode)
 		{
@@ -571,7 +653,9 @@ internal class FlyoutContainerManager
 			var clickOffX = flyoutWidth;
 
 			if (IsRTL)
+			{
 				clickOffX = 0;
+			}
 
 			_clickOffView.Frame = new CGRect(
 				clickOffX,
@@ -597,7 +681,9 @@ internal class FlyoutContainerManager
 	void PackContainers(UIView parentView)
 	{
 		if (_flyoutContainerView is null || _detailContainerView is null)
+		{
 			return;
+		}
 
 		if (!FlyoutOverlapsDetailsInPopoverMode)
 		{
@@ -620,7 +706,9 @@ internal class FlyoutContainerManager
 	void SetupTapGesture()
 	{
 		if (_clickOffView is null)
+		{
 			return;
+		}
 
 		_tapGesture = new UITapGestureRecognizer(() =>
 		{
@@ -644,12 +732,16 @@ internal class FlyoutContainerManager
 	{
 		var parentView = ParentView;
 		if (parentView is null)
+		{
 			return;
+		}
 
 		if (!_isGestureEnabled)
 		{
 			if (_panGesture is not null)
+			{
 				parentView.RemoveGestureRecognizer(_panGesture);
+			}
 			return;
 		}
 
@@ -693,7 +785,9 @@ internal class FlyoutContainerManager
 	void HandlePanChanged(UIPanGestureRecognizer g, PointF center, int directionModifier)
 	{
 		if (_flyoutContainerView is null || _detailContainerView is null)
+		{
 			return;
+		}
 
 		var currentPosition = g.LocationInView(g.View);
 		var motion = (currentPosition.X - center.X) * directionModifier;
@@ -705,9 +799,13 @@ internal class FlyoutContainerManager
 			var flyoutWidth = _flyoutContainerView.Frame.Width;
 
 			if (_isPresented)
+			{
 				targetFrame.X = (nfloat)Math.Max(0, flyoutWidth + Math.Min(0, motion));
+			}
 			else
+			{
 				targetFrame.X = (nfloat)Math.Min(flyoutWidth, Math.Max(0, motion));
+			}
 
 			targetFrame.X = targetFrame.X * directionModifier;
 			ApplyShadowDuringGesture(targetFrame);
@@ -720,9 +818,13 @@ internal class FlyoutContainerManager
 			var flyoutWidth = _flyoutContainerView.Frame.Width;
 
 			if (_isPresented)
+			{
 				targetFrame.X = (nfloat)Math.Max(-flyoutWidth, Math.Min(0, motion));
+			}
 			else
+			{
 				targetFrame.X = (nfloat)Math.Min(0, Math.Max(0, motion) - flyoutWidth);
+			}
 
 			if (IsRTL)
 			{
@@ -738,7 +840,9 @@ internal class FlyoutContainerManager
 	void HandlePanEnded(int directionModifier)
 	{
 		if (_flyoutContainerView is null || _detailContainerView is null)
+		{
 			return;
+		}
 
 		if (!FlyoutOverlapsDetailsInPopoverMode)
 		{
@@ -748,16 +852,24 @@ internal class FlyoutContainerManager
 			if (_isPresented)
 			{
 				if (detailFrame.X * directionModifier < flyoutWidth * 0.75)
+				{
 					SetPresented(false, animated: true, notifyDelegate: true);
+				}
 				else
+				{
 					LayoutPanes(animated: true);
+				}
 			}
 			else
 			{
 				if (detailFrame.X * directionModifier > flyoutWidth * 0.25)
+				{
 					SetPresented(true, animated: true, notifyDelegate: true);
+				}
 				else
+				{
 					LayoutPanes(animated: true);
+				}
 			}
 		}
 		else
@@ -766,23 +878,33 @@ internal class FlyoutContainerManager
 			var flyoutOffsetX = flyoutFrame.X + flyoutFrame.Width;
 
 			if (IsRTL)
+			{
 				flyoutOffsetX = (nfloat)(ParentView!.Bounds.Width - flyoutFrame.X);
+			}
 
 			var flyoutWidth = flyoutFrame.Width;
 
 			if (_isPresented)
 			{
 				if (flyoutOffsetX < flyoutWidth * 0.75)
+				{
 					SetPresented(false, animated: true, notifyDelegate: true);
+				}
 				else
+				{
 					LayoutPanes(animated: true);
+				}
 			}
 			else
 			{
 				if (flyoutOffsetX > flyoutWidth * 0.25)
+				{
 					SetPresented(true, animated: true, notifyDelegate: true);
+				}
 				else
+				{
 					LayoutPanes(animated: true);
+				}
 			}
 		}
 	}
@@ -790,11 +912,15 @@ internal class FlyoutContainerManager
 	void ApplyShadowDuringGesture(CGRect targetFrame)
 	{
 		if (!_applyShadow || _flyoutContainerView is null)
+		{
 			return;
+		}
 
 		var detailChildView = _detailVC?.View;
 		if (detailChildView is null)
+		{
 			return;
+		}
 
 		var flyoutWidth = _flyoutContainerView.Frame.Width;
 		nfloat openProgress;
@@ -823,10 +949,14 @@ internal class FlyoutContainerManager
 	void ToggleAccessibilityElementsHidden()
 	{
 		if (_flyoutContainerView is not null)
+		{
 			_flyoutContainerView.AccessibilityElementsHidden = !_isPresented;
+		}
 
 		if (_detailContainerView is not null)
+		{
 			_detailContainerView.AccessibilityElementsHidden = _isPresented;
+		}
 	}
 
 	// ═══════════════════════════════════════════════
@@ -836,10 +966,14 @@ internal class FlyoutContainerManager
 	static bool IsSwipeView(UIView? view)
 	{
 		if (view is null)
+		{
 			return false;
+		}
 
 		if (view.Superview is MauiSwipeView)
+		{
 			return true;
+		}
 
 		return IsSwipeView(view.Superview);
 	}
@@ -847,7 +981,9 @@ internal class FlyoutContainerManager
 	void NotifyLayoutBoundsChanged(CGRect flyoutFrame, CGRect detailFrame, CGRect containerFrame)
 	{
 		if (!_delegateRef.TryGetTarget(out var del))
+		{
 			return;
+		}
 
 		var flyoutBounds = new Rect(flyoutFrame.X, 0, flyoutFrame.Width, flyoutFrame.Height);
 		var detailBounds = new Rect(detailFrame.X, 0, containerFrame.Width, containerFrame.Height);
@@ -857,6 +993,8 @@ internal class FlyoutContainerManager
 	void NotifyLeftBarButtonNeedsUpdate()
 	{
 		if (_delegateRef.TryGetTarget(out var del))
+		{
 			del.OnLeftBarButtonNeedsUpdate();
+		}
 	}
 }

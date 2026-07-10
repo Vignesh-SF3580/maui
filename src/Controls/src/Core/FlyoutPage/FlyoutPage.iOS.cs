@@ -35,7 +35,9 @@ namespace Microsoft.Maui.Controls
                 // at this point triggers OnIsPresentedPropertyChanging validation which throws
                 // InvalidOperationException. The old renderer had the same guard in UpdatePresented.
                 if (!isPresented && ((IFlyoutPageController)fp).ShouldShowSplitMode)
+                {
                     return;
+                }
 
                 fp.IsPresented = isPresented;
             }
@@ -57,18 +59,24 @@ namespace Microsoft.Maui.Controls
         internal static void OnLeftBarButtonNeedsUpdate(IFlyoutView view)
         {
             if (view is not FlyoutPage fp)
+            {
                 return;
+            }
 
             // Subscribe to Flyout's property changes for icon/title updates
             fp.SubscribeToFlyoutPropertyChanges();
 
             // Get the detail's ViewController via its handler
             if (fp.Detail?.Handler is not IPlatformViewHandler detailHandler)
+            {
                 return;
+            }
 
             var detailVC = detailHandler.ViewController;
             if (detailVC is null)
+            {
                 return;
+            }
 
             // If detail VC is a UINavigationController, use its root VC (same as renderer)
             var targetVC = detailVC is UINavigationController nav
@@ -85,23 +93,31 @@ namespace Microsoft.Maui.Controls
         internal static void OnHandlerDisconnected(IFlyoutView view)
         {
             if (view is FlyoutPage fp)
+            {
                 fp.UnsubscribeFlyoutPropertyChanges();
+            }
         }
 
         void SubscribeToFlyoutPropertyChanges()
         {
             var flyout = Flyout;
             if (flyout is null)
+            {
                 return;
+            }
 
             // Unsubscribe from this instance's previous flyout if it changed
             if (_subscribedFlyout is not null && _subscribedFlyout.TryGetTarget(out var oldFlyout))
             {
                 if (ReferenceEquals(oldFlyout, flyout))
+                {
                     return; // Already subscribed to this flyout
+                }
 
                 if (_flyoutPropertyChangedHandler is not null)
+                {
                     oldFlyout.PropertyChanged -= _flyoutPropertyChangedHandler;
+                }
             }
 
             _flyoutPropertyChangedHandler = OnFlyoutPagePropertyChanged;
@@ -154,7 +170,9 @@ namespace Microsoft.Maui.Controls
             // Load icon asynchronously (same pattern as renderer)
             var mauiContext = flyoutPage.FindMauiContext();
             if (mauiContext is null)
+            {
                 return;
+            }
 
             flyoutPage.Flyout.IconImageSource.LoadImage(mauiContext, result =>
             {
@@ -194,12 +212,16 @@ namespace Microsoft.Maui.Controls
                 // Give the hamburger button an AutomationId and VoiceOver label/hint,
                 // like the legacy renderer did (NavigationRenderer.SetFlyoutLeftBarButton).
                 if (!string.IsNullOrEmpty(flyoutPage.AutomationId))
+                {
                     targetVC.NavigationItem.LeftBarButtonItem.AccessibilityIdentifier = $"btn_{flyoutPage.AutomationId}";
+                }
 
                 // Apply FlyoutPage's SemanticProperties (Description/Hint), if set.
                 var semantics = SemanticProperties.UpdateSemantics(flyoutPage, null);
                 if (semantics is not null)
+                {
                     targetVC.NavigationItem.LeftBarButtonItem.UpdateSemantics(semantics);
+                }
             });
         }
 

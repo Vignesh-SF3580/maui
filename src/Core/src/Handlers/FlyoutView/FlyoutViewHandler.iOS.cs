@@ -36,7 +36,9 @@ namespace Microsoft.Maui.Handlers
 			ViewController = null;
 
 			if (VirtualView is not null)
+			{
 				ControlsConfiguration?.OnHandlerDisconnected(VirtualView);
+			}
 
 			base.DisconnectHandler(platformView);
 		}
@@ -66,25 +68,33 @@ namespace Microsoft.Maui.Handlers
 		public static void MapIsPresented(IFlyoutViewHandler handler, IFlyoutView flyoutView)
 		{
 			if (handler is FlyoutViewHandler h && h._manager is { } manager)
+			{
 				manager.UpdateIsPresented(flyoutView.IsPresented, animated: true);
+			}
 		}
 
 		public static void MapFlyoutBehavior(IFlyoutViewHandler handler, IFlyoutView flyoutView)
 		{
 			if (handler is FlyoutViewHandler h && h._manager is { } manager)
+			{
 				manager.UpdateFlyoutBehavior(flyoutView.FlyoutBehavior);
+			}
 		}
 
 		public static void MapFlyoutWidth(IFlyoutViewHandler handler, IFlyoutView flyoutView)
 		{
 			if (handler is FlyoutViewHandler h && h._manager is { } manager)
+			{
 				manager.UpdateFlyoutWidth(flyoutView.FlyoutWidth);
+			}
 		}
 
 		public static void MapIsGestureEnabled(IFlyoutViewHandler handler, IFlyoutView flyoutView)
 		{
 			if (handler is FlyoutViewHandler h && h._manager is { } manager)
+			{
 				manager.UpdateIsGestureEnabled(flyoutView.IsGestureEnabled);
+			}
 		}
 
 		// ═══════════════════════════════════════════════
@@ -94,7 +104,9 @@ namespace Microsoft.Maui.Handlers
 		void IFlyoutContainerDelegate.OnPresentedChangedByGesture(bool isPresented)
 		{
 			if (VirtualView is null)
+			{
 				return;
+			}
 
 			ControlsConfiguration?.OnPresentedChangedByGesture(VirtualView, isPresented);
 		}
@@ -102,7 +114,9 @@ namespace Microsoft.Maui.Handlers
 		void IFlyoutContainerDelegate.OnLayoutBoundsChanged(Rect flyoutBounds, Rect detailBounds)
 		{
 			if (VirtualView is null)
+			{
 				return;
+			}
 
 			ControlsConfiguration?.OnLayoutBoundsChanged(VirtualView, flyoutBounds, detailBounds);
 		}
@@ -110,7 +124,9 @@ namespace Microsoft.Maui.Handlers
 		void IFlyoutContainerDelegate.OnLeftBarButtonNeedsUpdate()
 		{
 			if (VirtualView is null)
+			{
 				return;
+			}
 
 			ControlsConfiguration?.OnLeftBarButtonNeedsUpdate(VirtualView);
 		}

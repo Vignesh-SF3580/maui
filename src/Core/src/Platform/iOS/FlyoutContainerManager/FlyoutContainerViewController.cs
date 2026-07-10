@@ -25,7 +25,9 @@ internal class FlyoutContainerViewController : UIViewController
         View!.BackgroundColor = UIColor.SystemBackground;
 
         if (_managerRef.TryGetTarget(out var manager))
+        {
             manager.SetupContainerViews(this);
+        }
     }
 
     public override void ViewDidAppear(bool animated)
@@ -33,7 +35,9 @@ internal class FlyoutContainerViewController : UIViewController
         base.ViewDidAppear(animated);
 
         if (_managerRef.TryGetTarget(out var manager))
+        {
             manager.OnViewDidAppear();
+        }
     }
 
     public override void ViewWillDisappear(bool animated)
@@ -41,7 +45,9 @@ internal class FlyoutContainerViewController : UIViewController
         base.ViewWillDisappear(animated);
 
         if (_managerRef.TryGetTarget(out var manager))
+        {
             manager.OnViewWillDisappear();
+        }
     }
 
     public override void ViewDidLayoutSubviews()
@@ -49,7 +55,9 @@ internal class FlyoutContainerViewController : UIViewController
         base.ViewDidLayoutSubviews();
 
         if (_managerRef.TryGetTarget(out var manager))
+        {
             manager.OnParentViewDidLayoutSubviews();
+        }
     }
 
     public override void ViewWillTransitionToSize(CGSize toSize, IUIViewControllerTransitionCoordinator coordinator)
@@ -57,7 +65,9 @@ internal class FlyoutContainerViewController : UIViewController
         base.ViewWillTransitionToSize(toSize, coordinator);
 
         if (_managerRef.TryGetTarget(out var manager))
+        {
             manager.OnParentViewWillTransitionToSize(toSize);
+        }
     }
 
     public override UIViewController? ChildViewControllerForStatusBarHidden()
