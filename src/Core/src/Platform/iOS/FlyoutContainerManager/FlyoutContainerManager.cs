@@ -68,6 +68,13 @@ internal class FlyoutContainerManager
 
 	UIView? ParentView => _parentVCRef is not null && _parentVCRef.TryGetTarget(out var vc) ? vc.View : null;
 
+	/// <summary>
+	/// The currently-hosted Detail child VC. Used by <see cref="FlyoutContainerViewController"/>
+	/// to route status-bar/home-indicator delegate queries explicitly to Detail, matching the
+	/// legacy renderer's behavior (it never asked the Flyout VC for these).
+	/// </summary>
+	internal UIViewController? ActiveDetailViewController => _detailVC;
+
 	bool ShouldShowSplitMode
 	{
 		get
@@ -75,15 +82,12 @@ internal class FlyoutContainerManager
 			if (!FlyoutOverlapsDetailsInPopoverMode)
 				return false; // iPhone never splits
 
-			if (_flyoutBehavior == FlyoutBehavior.Locked)
-				return true;
-
-			if (_flyoutBehavior == FlyoutBehavior.Disabled)
-				return false;
-
-			// FlyoutBehavior.Flyout: split on iPad landscape
-			var bounds = ParentView?.Bounds ?? UIScreen.MainScreen.Bounds;
-			return bounds.Width > bounds.Height;
+			// Controls (FlyoutPage.cs) already decides split vs. non-split based on
+			// FlyoutLayoutBehavior + orientation, and passes us the result as
+			// Locked (split) or Flyout (not split). Trust it as-is — don't
+			// recompute split mode from raw bounds, or Popover/SplitOnPortrait
+			// will be split incorrectly.
+			return _flyoutBehavior == FlyoutBehavior.Locked;
 		}
 	}
 

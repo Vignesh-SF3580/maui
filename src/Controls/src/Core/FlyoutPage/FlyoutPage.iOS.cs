@@ -11,8 +11,15 @@ namespace Microsoft.Maui.Controls
 {
     public partial class FlyoutPage
     {
-        // Track the flyout page we're subscribed to for property changes
-        static WeakReference<Page>? _subscribedFlyout;
+        // Track the flyout page this specific FlyoutPage instance is subscribed to
+        // for icon/title property changes. Instance-scoped (not static) so multiple
+        // FlyoutPage instances (multi-window, modal FlyoutPage, etc.) don't clobber
+        // each other's subscriptions — see Multi-Model Review Finding 3.
+        WeakReference<Page>? _subscribedFlyout;
+
+        // Cached delegate instance so we can unsubscribe the exact same handler
+        // we subscribed with.
+        PropertyChangedEventHandler? _flyoutPropertyChangedHandler;
 
         // ═══════════════════════════════════════════════
         // Write-Back Callbacks (IFlyoutContainerDelegate → Controls)
@@ -53,7 +60,7 @@ namespace Microsoft.Maui.Controls
                 return;
 
             // Subscribe to Flyout's property changes for icon/title updates
-            SubscribeToFlyoutPropertyChanges(fp);
+            fp.SubscribeToFlyoutPropertyChanges();
 
             // Get the detail's ViewController via its handler
             if (fp.Detail?.Handler is not IPlatformViewHandler detailHandler)
@@ -71,26 +78,55 @@ namespace Microsoft.Maui.Controls
             UpdateFlyoutLeftBarButton(targetVC, fp);
         }
 
-        static void SubscribeToFlyoutPropertyChanges(FlyoutPage flyoutPage)
+        /// <summary>
+        /// Called when this FlyoutPage's handler is disconnected, so its flyout
+        /// icon/title subscription doesn't outlive the handler.
+        /// </summary>
+        internal static void OnHandlerDisconnected(IFlyoutView view)
         {
-            var flyout = flyoutPage.Flyout;
+            if (view is FlyoutPage fp)
+                fp.UnsubscribeFlyoutPropertyChanges();
+        }
+
+        void SubscribeToFlyoutPropertyChanges()
+        {
+            var flyout = Flyout;
             if (flyout is null)
                 return;
 
-            // Unsubscribe from previous flyout if different
+            // Unsubscribe from this instance's previous flyout if it changed
             if (_subscribedFlyout is not null && _subscribedFlyout.TryGetTarget(out var oldFlyout))
             {
                 if (ReferenceEquals(oldFlyout, flyout))
                     return; // Already subscribed to this flyout
 
-                oldFlyout.PropertyChanged -= OnFlyoutPagePropertyChanged;
+                if (_flyoutPropertyChangedHandler is not null)
+                    oldFlyout.PropertyChanged -= _flyoutPropertyChangedHandler;
             }
 
-            flyout.PropertyChanged += OnFlyoutPagePropertyChanged;
+            _flyoutPropertyChangedHandler = OnFlyoutPagePropertyChanged;
+            flyout.PropertyChanged += _flyoutPropertyChangedHandler;
             _subscribedFlyout = new WeakReference<Page>(flyout);
         }
 
-        static void OnFlyoutPagePropertyChanged(object? sender, PropertyChangedEventArgs e)
+        /// <summary>
+        /// Unsubscribes from the currently-tracked flyout's property changes.
+        /// Called when this FlyoutPage's handler is disconnected.
+        /// </summary>
+        void UnsubscribeFlyoutPropertyChanges()
+        {
+            if (_subscribedFlyout is not null &&
+                _subscribedFlyout.TryGetTarget(out var flyout) &&
+                _flyoutPropertyChangedHandler is not null)
+            {
+                flyout.PropertyChanged -= _flyoutPropertyChangedHandler;
+            }
+
+            _flyoutPropertyChangedHandler = null;
+            _subscribedFlyout = null;
+        }
+
+        void OnFlyoutPagePropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
             if (e.PropertyName == Page.IconImageSourceProperty.PropertyName ||
                 e.PropertyName == Page.TitleProperty.PropertyName)
@@ -154,6 +190,16 @@ namespace Microsoft.Maui.Controls
                     targetVC.NavigationItem.LeftBarButtonItem =
                         new UIBarButtonItem(flyoutPage.Flyout?.Title ?? string.Empty, UIBarButtonItemStyle.Plain, onItemTapped);
                 }
+
+                // Give the hamburger button an AutomationId and VoiceOver label/hint,
+                // like the legacy renderer did (NavigationRenderer.SetFlyoutLeftBarButton).
+                if (!string.IsNullOrEmpty(flyoutPage.AutomationId))
+                    targetVC.NavigationItem.LeftBarButtonItem.AccessibilityIdentifier = $"btn_{flyoutPage.AutomationId}";
+
+                // Apply FlyoutPage's SemanticProperties (Description/Hint), if set.
+                var semantics = SemanticProperties.UpdateSemantics(flyoutPage, null);
+                if (semantics is not null)
+                    targetVC.NavigationItem.LeftBarButtonItem.UpdateSemantics(semantics);
             });
         }
 

@@ -29,6 +29,9 @@ namespace Microsoft.Maui.Handlers
 
 		protected override void DisconnectHandler(UIView platformView)
 		{
+			if (VirtualView is not null)
+				ControlsConfiguration?.OnHandlerDisconnected(VirtualView);
+
 			_manager?.TearDown();
 			_manager = null;
 			_containerVC = null;

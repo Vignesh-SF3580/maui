@@ -62,22 +62,23 @@ internal class FlyoutContainerViewController : UIViewController
 
     public override UIViewController? ChildViewControllerForStatusBarHidden()
     {
-        return ChildViewControllers?.Length > 0
-            ? ChildViewControllers[^1]
-            : base.ChildViewControllerForStatusBarHidden();
+        return GetActiveDetailViewController() ?? base.ChildViewControllerForStatusBarHidden();
     }
 
     public override UIViewController? ChildViewControllerForStatusBarStyle()
     {
-        return ChildViewControllers?.Length > 0
-            ? ChildViewControllers[^1]
-            : base.ChildViewControllerForStatusBarStyle();
+        return GetActiveDetailViewController() ?? base.ChildViewControllerForStatusBarStyle();
     }
 
     public override UIViewController? ChildViewControllerForHomeIndicatorAutoHidden
     {
-        get => ChildViewControllers?.Length > 0
-            ? ChildViewControllers[^1]
-            : base.ChildViewControllerForHomeIndicatorAutoHidden;
+        get => GetActiveDetailViewController() ?? base.ChildViewControllerForHomeIndicatorAutoHidden;
     }
+
+    // Always defer to the Detail VC, matching the legacy renderer — never the Flyout VC,
+    // and never just "whichever child was added last" (that can be the Flyout VC if it's
+    // re-added after Detail, silently breaking the visible page's status-bar/home-indicator
+    // preferences).
+    UIViewController? GetActiveDetailViewController() =>
+        _managerRef.TryGetTarget(out var manager) ? manager.ActiveDetailViewController : null;
 }

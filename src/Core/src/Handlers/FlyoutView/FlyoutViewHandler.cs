@@ -65,7 +65,8 @@ namespace Microsoft.Maui.Handlers
 		internal sealed record FlyoutViewHandlerControlsConfiguration(
 			Action<IFlyoutView, bool> OnPresentedChangedByGesture,
 			Action<IFlyoutView, Graphics.Rect, Graphics.Rect> OnLayoutBoundsChanged,
-			Action<IFlyoutView> OnLeftBarButtonNeedsUpdate
+			Action<IFlyoutView> OnLeftBarButtonNeedsUpdate,
+			Action<IFlyoutView> OnHandlerDisconnected
 		);
 
 		internal static FlyoutViewHandlerControlsConfiguration? ControlsConfiguration { get; set; }

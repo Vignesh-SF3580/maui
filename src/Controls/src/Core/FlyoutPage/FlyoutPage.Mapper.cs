@@ -17,7 +17,8 @@ namespace Microsoft.Maui.Controls
 			FlyoutViewHandler.ControlsConfiguration = new(
 				OnPresentedChangedByGesture: FlyoutPage.OnPresentedChangedByGesture,
 				OnLayoutBoundsChanged: FlyoutPage.OnLayoutBoundsChanged,
-				OnLeftBarButtonNeedsUpdate: FlyoutPage.OnLeftBarButtonNeedsUpdate
+				OnLeftBarButtonNeedsUpdate: FlyoutPage.OnLeftBarButtonNeedsUpdate,
+				OnHandlerDisconnected: FlyoutPage.OnHandlerDisconnected
 			);
 
 			// iOS-specific property mappers
