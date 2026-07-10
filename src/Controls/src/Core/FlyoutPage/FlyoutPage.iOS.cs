@@ -219,7 +219,14 @@ namespace Microsoft.Maui.Controls
         internal static void MapFlowDirection(IFlyoutViewHandler handler, IFlyoutView view)
         {
             if (handler is FlyoutViewHandler h && h._manager is { } manager && view is IView v)
-                manager.UpdateFlowDirection(v.FlowDirection);
+            {
+                // Use the effective/inherited flow direction rather than the raw
+                // FlowDirection. A FlyoutPage left at the default MatchParent should
+                // follow an RTL app/window, not be treated as LTR.
+                var flowDirection = (view as IVisualElementController)?.EffectiveFlowDirection.ToFlowDirection()
+                    ?? v.FlowDirection;
+                manager.UpdateFlowDirection(flowDirection);
+            }
         }
     }
 }
