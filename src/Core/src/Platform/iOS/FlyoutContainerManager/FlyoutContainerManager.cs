@@ -242,6 +242,10 @@ internal class FlyoutContainerManager
 			_detailVC.DidMoveToParentViewController(parentVC);
 		}
 
+		// Detail drives status bar/home-indicator preferences, so invalidate both on swap.
+		parentVC.SetNeedsStatusBarAppearanceUpdate();
+		parentVC.SetNeedsUpdateOfHomeIndicatorAutoHidden();
+
 		ToggleAccessibilityElementsHidden();
 		NotifyLeftBarButtonNeedsUpdate();
 	}

@@ -14,7 +14,7 @@ namespace Microsoft.Maui.Controls
         // Track the flyout page this specific FlyoutPage instance is subscribed to
         // for icon/title property changes. Instance-scoped (not static) so multiple
         // FlyoutPage instances (multi-window, modal FlyoutPage, etc.) don't clobber
-        // each other's subscriptions — see Multi-Model Review Finding 3.
+        // each other's subscriptions.
         WeakReference<Page>? _subscribedFlyout;
 
         // Cached delegate instance so we can unsubscribe the exact same handler
