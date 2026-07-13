@@ -309,16 +309,21 @@ internal class FlyoutContainerManager
 
 		if (shouldPresent != _isPresented)
 		{
-			// notifyDelegate: false — behavior changes are platform-initiated.
-			// Writing back IsPresented can throw InvalidOperationException.
-			SetPresented(shouldPresent, animated: true, notifyDelegate: false);
-			NotifyLeftBarButtonNeedsUpdate();
+			// Notify delegate so VirtualView.IsPresented and IsPresentedChanged stay in sync.
+			// Safe because the mapper fires after ShouldShowSplitMode has settled;
+			// the guard in OnPresentedChangedByGesture handles any remaining edge cases.
+			SetPresented(shouldPresent, animated: true, notifyDelegate: true);
 		}
 		else
 		{
 			LayoutPanes(animated: true);
 			UpdateClickOffView();
 		}
+
+		// Always update the bar button after a behavior change — the hamburger must be
+		// hidden in Split/Locked mode and shown in Popover mode, regardless of whether
+		// the presented state changed.
+		NotifyLeftBarButtonNeedsUpdate();
 	}
 
 	internal void UpdateFlyoutWidth(double width)
