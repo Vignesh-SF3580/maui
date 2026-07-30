@@ -256,6 +256,12 @@ internal class FlyoutContainerManager
 			return;
 		}
 
+		// Cannot open when Disabled
+		if (isPresented && _flyoutBehavior == FlyoutBehavior.Disabled)
+		{
+			return;
+		}
+
 		// Cannot close when Locked (Split) or in split mode
 		if (!isPresented && (_flyoutBehavior == FlyoutBehavior.Locked || ShouldShowSplitMode))
 		{
@@ -327,12 +333,21 @@ internal class FlyoutContainerManager
 
 	internal void UpdateFlowDirection(FlowDirection direction)
 	{
+		bool directionChanged = _flowDirection != direction;
 		_flowDirection = direction;
 		ApplySemanticContentAttribute();
 
 		if (_initialLayoutFinished)
 		{
 			LayoutPanes(animated: false);
+
+			// Recreate the hamburger bar button on real flow-direction changes so it
+			// renders correctly. Initial setup is notified by SetDetailViewController /
+			// SetFlyoutViewController.
+			if (directionChanged)
+			{
+				NotifyLeftBarButtonNeedsUpdate();
+			}
 		}
 	}
 
@@ -766,7 +781,8 @@ internal class FlyoutContainerManager
 		_panGesture.ShouldReceiveTouch = (_, t) =>
 			!(t.View is UISlider) &&
 			!IsSwipeView(t.View) &&
-			!ShouldShowSplitMode;
+			!ShouldShowSplitMode &&
+			_flyoutBehavior != FlyoutBehavior.Disabled;
 		_panGesture.MaximumNumberOfTouches = 2;
 
 		parentView.AddGestureRecognizer(_panGesture);
