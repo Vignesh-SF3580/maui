@@ -213,7 +213,9 @@ namespace Microsoft.Maui.Controls.Handlers
             // Reapply after attaching the shared tab bar; the earlier RTL update runs too soon.
             UpdateTabBarFlowDirection();
 
-            SetTabItemsEnabledState();
+            // Apply enabled/badge state once the tab bar has appeared. Applying it earlier
+            // doesn't reliably affect the native tab bar UI yet.
+            // SetTabItemsEnabledState() is called from ShellItemTabBarController.ViewDidAppear instead.
 
             UpdateTabBarHidden();
 
@@ -895,6 +897,16 @@ namespace Microsoft.Maui.Controls.Handlers
                 if (_handlerRef.TryGetTarget(out var handler))
                 {
                     handler.ViewDidLayoutSubviews();
+                }
+            }
+
+            public override void ViewDidAppear(bool animated)
+            {
+                base.ViewDidAppear(animated);
+
+                if (_handlerRef.TryGetTarget(out var handler))
+                {
+                    handler.SetTabItemsEnabledState();
                 }
             }
         }
