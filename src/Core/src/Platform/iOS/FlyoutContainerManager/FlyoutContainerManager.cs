@@ -34,6 +34,7 @@ internal class FlyoutContainerManager
 	bool _isGestureEnabled = true;
 	bool _applyShadow;
 	bool _initialLayoutFinished;
+	bool _flyoutOverlapsDetail;
 
 	FlyoutBehavior _flyoutBehavior = FlyoutBehavior.Flyout;
 	FlowDirection _flowDirection = FlowDirection.MatchParent;
@@ -46,12 +47,19 @@ internal class FlyoutContainerManager
 	}
 
 
+	/// <summary>Sets whether the flyout overlaps the detail pane regardless of device idiom.</summary>
+	internal void SetFlyoutOverlapsDetail(bool overlaps)
+	{
+		_flyoutOverlapsDetail = overlaps;
+	}
+
 	/// <summary>
 	/// On iPad, the flyout overlaps the detail (slides over from left).
 	/// On iPhone, the detail slides right to reveal the flyout behind it.
+	/// Consumers can override via SetFlyoutOverlapsDetail(true) to force overlay mode.
 	/// </summary>
-	static bool FlyoutOverlapsDetailsInPopoverMode =>
-		UIDevice.CurrentDevice.UserInterfaceIdiom == UIUserInterfaceIdiom.Pad;
+	bool FlyoutOverlapsDetailsInPopoverMode =>
+		_flyoutOverlapsDetail || UIDevice.CurrentDevice.UserInterfaceIdiom == UIUserInterfaceIdiom.Pad;
 
 	bool IsRTL => _flowDirection == FlowDirection.RightToLeft;
 
@@ -376,6 +384,22 @@ internal class FlyoutContainerManager
 		_applyShadow = applyShadow;
 	}
 
+	/// <summary>Sets the background color shown behind the detail content when <see cref="UpdateApplyShadow"/> dims it.
+	/// Defaults to black. Pass <see cref="UIColor.SystemBackground"/> to replicate a light-overlay dim (Shell's historical behavior).</summary>
+	internal void SetShadowBackgroundColor(UIColor color)
+	{
+		if (_detailContainerView is not null)
+			_detailContainerView.BackgroundColor = color;
+	}
+
+	/// <summary>Sets the scrim (click-off overlay) background color. Pass <c>null</c> to reset to transparent.</summary>
+	internal void SetScrimColor(UIColor? color)
+	{
+		if (_clickOffView is not null)
+		{
+			_clickOffView.BackgroundColor = color ?? new UIColor(0, 0, 0, 0);
+		}
+	}
 
 	internal void TearDown()
 	{
