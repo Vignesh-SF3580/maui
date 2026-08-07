@@ -39,6 +39,7 @@ internal class FlyoutContainerManager
 	FlyoutBehavior _flyoutBehavior = FlyoutBehavior.Flyout;
 	FlowDirection _flowDirection = FlowDirection.MatchParent;
 	double _flyoutWidth = -1; // -1 means platform default
+	double _flyoutHeight = -1; // -1 means full height
 
 
 	internal FlyoutContainerManager(IFlyoutContainerDelegate containerDelegate)
@@ -71,6 +72,9 @@ internal class FlyoutContainerManager
 	/// legacy renderer's behavior (it never asked the Flyout VC for these).
 	/// </summary>
 	internal UIViewController? ActiveDetailViewController => _detailVC;
+
+	/// <summary>Exposes the scrim (click-off) view so callers can apply brush-based backgrounds (e.g. gradients).</summary>
+	internal UIView? ScrimView => _clickOffView;
 
 	bool ShouldShowSplitMode
 	{
@@ -126,7 +130,9 @@ internal class FlyoutContainerManager
 				isPresented = del.GetCurrentIsPresented();
 			}
 
-			if (ShouldShowSplitMode)
+			// Locked behavior ensures the flyout is always open; ShouldShowSplitMode is no longer
+			// true for Shell (see _flyoutOverlapsDetail guard), so check _flyoutBehavior directly.
+			if (ShouldShowSplitMode || _flyoutBehavior == FlyoutBehavior.Locked)
 			{
 				SetPresented(true, animated: false, notifyDelegate: false);
 			}
@@ -149,9 +155,11 @@ internal class FlyoutContainerManager
 			if (FlyoutOverlapsDetailsInPopoverMode)
 			{
 				// notifyDelegate: false — rotation is platform-initiated.
-				// Writing back IsPresented during rotation can throw InvalidOperationException
-				// when ShouldShowSplitMode is still in transition.
-				SetPresented(shouldSplit, animated: true, notifyDelegate: false);
+				// Preserve the current presented state; only force-open when split mode requires it.
+				// Previously this forced closed (shouldSplit=false → SetPresented(false)) which
+				// dismissed the flyout on rotation in Shell overlay mode.
+				bool targetPresented = shouldSplit || _isPresented;
+				SetPresented(targetPresented, animated: true, notifyDelegate: false);
 			}
 			else if (!shouldSplit && _isPresented)
 			{
@@ -283,21 +291,21 @@ internal class FlyoutContainerManager
 	{
 		var previousBehavior = _flyoutBehavior;
 		_flyoutBehavior = behavior;
-
-		// Before initial layout, just store the behavior.
 		if (!_initialLayoutFinished)
 		{
 			return;
 		}
 
-		bool shouldPresent = ShouldShowSplitMode;
-		if (behavior == FlyoutBehavior.Flyout || behavior == FlyoutBehavior.Disabled)
+		// Flyout mode preserves current presented state; only Locked forces open and Disabled forces closed.
+		// This matches the old ShellFlyoutRenderer which never changed IsOpen when switching to Flyout.
+		bool shouldPresent = _isPresented;
+		if (behavior == FlyoutBehavior.Disabled)
 		{
 			shouldPresent = false;
 		}
 		else if (behavior == FlyoutBehavior.Locked)
 		{
-			shouldPresent = true; // Locked = always presented (even on iPhone)
+			shouldPresent = true;
 		}
 
 		bool stateChanged = shouldPresent != _isPresented;
@@ -327,6 +335,15 @@ internal class FlyoutContainerManager
 	internal void UpdateFlyoutWidth(double width)
 	{
 		_flyoutWidth = width;
+		if (_initialLayoutFinished)
+		{
+			LayoutPanes(animated: false);
+		}
+	}
+
+	internal void UpdateFlyoutHeight(double height)
+	{
+		_flyoutHeight = height;
 		if (_initialLayoutFinished)
 		{
 			LayoutPanes(animated: false);
@@ -461,6 +478,10 @@ internal class FlyoutContainerManager
 		var flyoutFrame = frame;
 		nfloat opacity = 1;
 
+		// Apply custom flyout height when set; default uses full frame height.
+		if (_flyoutHeight > 0)
+			flyoutFrame.Height = (nfloat)_flyoutHeight;
+
 		// Calculate flyout width
 		if (FlyoutOverlapsDetailsInPopoverMode)
 		{
@@ -501,6 +522,13 @@ internal class FlyoutContainerManager
 			if (_applyShadow)
 			{
 				opacity = 0.5f;
+			}
+
+			// RTL split mode: the narrow detail strip behind the flyout must be invisible
+			// so it matches the baseline (white background), while remaining accessible for taps.
+			if (IsRTL && ShouldShowSplitMode)
+			{
+				opacity = 0;
 			}
 		}
 
@@ -604,12 +632,13 @@ internal class FlyoutContainerManager
 			return (nfloat)_flyoutWidth;
 		}
 
-		if (forOverlap)
+		// iPad: always 320pt (matches old SlideFlyoutTransition and UIKit popover default).
+		// iPhone: 80% of shorter dimension regardless of overlay mode — matches old renderer.
+		if (UIDevice.CurrentDevice.UserInterfaceIdiom == UIUserInterfaceIdiom.Pad)
 		{
 			return 320;
 		}
 
-		// Phone default: 80% of the shorter dimension, truncated to int.
 		return (nfloat)(int)(Math.Min(containerFrame.Width, containerFrame.Height) * 0.8);
 	}
 
@@ -673,7 +702,13 @@ internal class FlyoutContainerManager
 			return;
 		}
 
-		parentView.AddSubview(_clickOffView);
+		// In overlay mode, insert below the flyout so the flyout covers the left portion of any
+		// gradient backdrop — matching the old ShellFlyoutRenderer TapoffView behavior.
+		if (FlyoutOverlapsDetailsInPopoverMode && _flyoutContainerView is not null)
+			parentView.InsertSubviewBelow(_clickOffView, _flyoutContainerView);
+		else
+			parentView.AddSubview(_clickOffView);
+
 		UpdateClickOffViewFrame();
 	}
 
@@ -686,20 +721,11 @@ internal class FlyoutContainerManager
 
 		if (FlyoutOverlapsDetailsInPopoverMode)
 		{
+			// Full-width frame — the flyout container sits on top and covers the left portion.
+			// This lets a gradient backdrop render across the full width while only the
+			// area to the right of the flyout is visible, matching the old renderer behavior.
 			var detailsFrame = _detailContainerView.Frame;
-			var flyoutWidth = _flyoutContainerView.Frame.Width;
-			var clickOffX = flyoutWidth;
-
-			if (IsRTL)
-			{
-				clickOffX = 0;
-			}
-
-			_clickOffView.Frame = new CGRect(
-				clickOffX,
-				detailsFrame.Y,
-				detailsFrame.Width - flyoutWidth,
-				detailsFrame.Height);
+			_clickOffView.Frame = new CGRect(0, detailsFrame.Y, detailsFrame.Width, detailsFrame.Height);
 		}
 		else
 		{
@@ -982,8 +1008,11 @@ internal class FlyoutContainerManager
 
 		if (_detailContainerView is not null)
 		{
-			// Only hide Detail when the Flyout is actually covering it, not in split mode.
-			_detailContainerView.AccessibilityElementsHidden = _isPresented && !ShouldShowSplitMode;
+			// Hide detail only when the flyout physically displaces it (phone push-aside mode).
+			// In overlay mode the flyout slides over the detail without moving it — both areas
+			// remain accessible (VoiceOver + Appium). Split mode also keeps both accessible.
+			bool shouldHideDetail = _isPresented && !ShouldShowSplitMode && !FlyoutOverlapsDetailsInPopoverMode;
+			_detailContainerView.AccessibilityElementsHidden = shouldHideDetail;
 		}
 	}
 

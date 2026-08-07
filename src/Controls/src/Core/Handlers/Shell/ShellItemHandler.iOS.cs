@@ -94,7 +94,7 @@ namespace Microsoft.Maui.Controls.Handlers
             _tabBarController.ShouldSelectViewController = (tabController, viewController) =>
             {
                 bool accept = true;
-                var renderer = RendererForViewController(viewController);
+                var renderer = viewController is null ? null : RendererForViewController(viewController!);
                 if (renderer is not null)
                 {
                     // iOS 26+ can still drag-select disabled tabs.
@@ -104,6 +104,14 @@ namespace Microsoft.Maui.Controls.Handlers
                     }
 
                     accept = ((IShellItemController)VirtualView).ProposeSection(renderer.ShellSection, false);
+                }
+
+                // UIKit does not call setSelectedViewController: for individual More-list item picks,
+                // so OnTabSelected never runs for the More button tap. Set the delegate here instead.
+                if (_tabManager is not null && ReferenceEquals(viewController, _tabManager.MoreNavigationController))
+                {
+                    _moreNavigationDelegate ??= new MoreNavigationDelegate(this);
+                    _tabManager.MoreNavigationController.Delegate = _moreNavigationDelegate;
                 }
 
                 return accept;
@@ -118,6 +126,11 @@ namespace Microsoft.Maui.Controls.Handlers
         {
             ((IDisconnectable)this).Disconnect();
 
+            // Must clear ShouldSelectViewController BEFORE disposing _tabManager:
+            // Dispose() releases the UITabBarController, so accessing it afterward crashes
+            // on UITabBarController.get_WeakDelegate() with a SIGSEGV.
+            _tabBarController.ShouldSelectViewController = null;
+
             if (_tabManager is not null)
             {
                 _tabManager.ViewDidAppear -= OnTabManagerViewDidAppear;
@@ -126,8 +139,6 @@ namespace Microsoft.Maui.Controls.Handlers
                 _tabManager.Dispose();
                 _tabManager = null;
             }
-
-            _tabBarController.ShouldSelectViewController = null;
 
             foreach (var kvp in _sectionRenderers.ToList())
             {
@@ -206,11 +217,15 @@ namespace Microsoft.Maui.Controls.Handlers
                 {
                     VirtualView.SetValueFromRenderer(ShellItem.CurrentItemProperty, renderer.ShellSection);
                     CurrentRenderer = renderer;
-                }
 
-                if (_tabManager is not null && ReferenceEquals(selectedVC, _tabManager.MoreNavigationController))
-                {
-                    _tabManager.MoreNavigationController.WeakDelegate = _moreNavigationDelegate ??= new MoreNavigationDelegate(this);
+                    // Keep _currentSection in sync so programmatic GoTo (e.g. GoToAsync("//home"))
+                    // doesn't think the previous section is still current and skip the switch.
+                    if (_currentSection != renderer.ShellSection)
+                    {
+                        ((IShellSectionController?)_currentSection)?.RemoveDisplayedPageObserver(this);
+                        _currentSection = renderer.ShellSection;
+                        ((IShellSectionController)_currentSection).AddDisplayedPageObserver(this, OnDisplayedPageChanged);
+                    }
                 }
 
                 UpdateMoreCellsEnabled();
@@ -332,7 +347,8 @@ namespace Microsoft.Maui.Controls.Handlers
 
             if (ReferenceEquals(value, _tabBarController.MoreNavigationController))
             {
-                _tabBarController.MoreNavigationController.WeakDelegate = _moreNavigationDelegate ??= new MoreNavigationDelegate(this);
+                _moreNavigationDelegate ??= new MoreNavigationDelegate(this);
+                _tabBarController.MoreNavigationController.Delegate = _moreNavigationDelegate;
             }
 
             UpdateMoreCellsEnabled();
@@ -372,7 +388,11 @@ namespace Microsoft.Maui.Controls.Handlers
                     return;
                 }
 
-                var renderer = handler.RendererForViewController(handler._tabBarController.SelectedViewController!);
+                // UIKit bypasses our SelectedViewController override for More-item picks;
+                // read SelectedVC here — it is already updated to the section's nav controller.
+                var renderer = handler._tabBarController.SelectedViewController is { } selectedVC
+                    ? handler.RendererForViewController(selectedVC)
+                    : null;
 
                 if (renderer is not null)
                 {

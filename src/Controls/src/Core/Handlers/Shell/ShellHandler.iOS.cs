@@ -27,6 +27,7 @@ namespace Microsoft.Maui.Controls.Handlers
         IShellFlyoutContentRenderer? _flyoutContentRenderer;
         Brush? _backdropBrush;
         double _flyoutWidth = -1;
+        double _flyoutHeight = -1;
 
         IShellItemRenderer? _currentShellItemRenderer;
         IShellItemRenderer? _incomingRenderer;
@@ -214,6 +215,8 @@ namespace Microsoft.Maui.Controls.Handlers
             if (appearance is null)
             {
                 _backdropBrush = Brush.Default;
+                if (_flyoutHeight != -1)
+                { _flyoutHeight = -1; _flyoutManager?.UpdateFlyoutHeight(-1); }
             }
             else
             {
@@ -222,10 +225,13 @@ namespace Microsoft.Maui.Controls.Handlers
                 if (_flyoutWidth != appearance.FlyoutWidth)
                 {
                     _flyoutWidth = appearance.FlyoutWidth;
-                    if (_flyoutWidth >= 0)
-                    {
-                        _flyoutManager?.UpdateFlyoutWidth(_flyoutWidth);
-                    }
+                    _flyoutManager?.UpdateFlyoutWidth(_flyoutWidth);
+                }
+
+                if (_flyoutHeight != appearance.FlyoutHeight)
+                {
+                    _flyoutHeight = appearance.FlyoutHeight;
+                    _flyoutManager?.UpdateFlyoutHeight(_flyoutHeight);
                 }
             }
         }
@@ -280,11 +286,6 @@ namespace Microsoft.Maui.Controls.Handlers
         {
             _flyoutContentRenderer = CreateShellFlyoutContentRenderer();
             _flyoutManager?.SetFlyoutViewController(_flyoutContentRenderer.ViewController);
-            // Dim the detail content when flyout is open (matches old ShellFlyoutRenderer TapoffView behavior).
-            // Use SystemBackground (white in light mode) so 50%-opacity dim produces a white-overlay effect,
-            // not a dark one (which the default black container background would cause).
-            _flyoutManager?.SetShadowBackgroundColor(ColorExtensions.BackgroundColor);
-            _flyoutManager?.UpdateApplyShadow(true);
 
             // Create the detail container — Shell manages what goes inside it.
             _detailView = new UIView();
@@ -292,6 +293,8 @@ namespace Microsoft.Maui.Controls.Handlers
             _detailContainerVC = new UIViewController();
             _detailContainerVC.View = _detailView;
             _flyoutManager?.SetDetailViewController(_detailContainerVC);
+            _flyoutManager?.UpdateApplyShadow(true);
+            _flyoutManager?.SetShadowBackgroundColor(UIColor.SystemBackground);
 
             ((IShellController)VirtualView).AddFlyoutBehaviorObserver(this);
 
@@ -473,17 +476,14 @@ namespace Microsoft.Maui.Controls.Handlers
         {
             handler._backdropBrush = shell.FlyoutBackdrop;
 
-            if (handler._flyoutManager is not null)
-            {
-                if (shell.FlyoutBackdrop is SolidColorBrush solidBrush && solidBrush.Color is not null)
-                {
-                    handler._flyoutManager.SetScrimColor(solidBrush.Color.ToPlatform());
-                }
-                else
-                {
-                    handler._flyoutManager.SetScrimColor(null);
-                }
-            }
+            var scrimView = handler._flyoutManager?.ScrimView;
+            if (scrimView is null)
+                return;
+
+            scrimView.UpdateBackground(shell.FlyoutBackdrop);
+
+            if (Brush.IsNullOrEmpty(shell.FlyoutBackdrop))
+                scrimView.BackgroundColor = UIColor.Clear;
         }
 
         public static void MapFlyoutHeader(ShellHandler handler, Shell shell)
@@ -539,20 +539,17 @@ namespace Microsoft.Maui.Controls.Handlers
 
         public static void MapPrefersHomeIndicatorAutoHidden(ShellHandler handler, Shell shell)
         {
-            ((IShellContext)handler).CurrentShellItemRenderer?.ViewController
-                ?.SetNeedsUpdateOfHomeIndicatorAutoHidden();
+            handler.ViewController?.SetNeedsUpdateOfHomeIndicatorAutoHidden();
         }
 
         public static void MapPrefersStatusBarHidden(ShellHandler handler, Shell shell)
         {
-            ((IShellContext)handler).CurrentShellItemRenderer?.ViewController
-                ?.SetNeedsStatusBarAppearanceUpdate();
+            handler.ViewController?.SetNeedsStatusBarAppearanceUpdate();
         }
 
         public static void MapPreferredStatusBarUpdateAnimation(ShellHandler handler, Shell shell)
         {
-            ((IShellContext)handler).CurrentShellItemRenderer?.ViewController
-                ?.SetNeedsStatusBarAppearanceUpdate();
+            handler.ViewController?.SetNeedsStatusBarAppearanceUpdate();
         }
 
         public static void MapFlyoutIcon(ShellHandler handler, Shell shell)
@@ -607,6 +604,11 @@ namespace Microsoft.Maui.Controls.Handlers
 
             public override bool PrefersStatusBarHidden()
                 => Shell?.CurrentPage?.OnThisPlatform()?.PrefersStatusBarHidden() == StatusBarHiddenMode.True;
+
+            // Return null so UIKit calls PrefersStatusBarHidden()/PrefersHomeIndicatorAutoHidden on this VC
+            // directly; the base (FlyoutContainerViewController) delegates to _detailContainerVC which has no overrides.
+            public override UIViewController? ChildViewControllerForStatusBarHidden() => null;
+            public override UIViewController? ChildViewControllerForHomeIndicatorAutoHidden => null;
 
 #if !MACCATALYST
             public override UIViewController? ChildViewControllerForStatusBarStyle()

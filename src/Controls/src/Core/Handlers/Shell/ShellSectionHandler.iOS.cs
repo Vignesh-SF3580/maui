@@ -57,6 +57,11 @@ namespace Microsoft.Maui.Controls.Handlers
         // iOS 26+ can raise back-navigation callbacks more than once per gesture; guard SendPop().
         bool _sendPopPending;
 
+        // Guard unsolicited-pop detection while a push is in flight.
+        // Without this, UIKit's rescheduleBlock mechanism causes shellStack.Count > ActiveViewControllers().Length
+        // between the first and second DidShowViewController calls during rapid pushes, triggering a false pop.
+        int _pendingPushCount;
+
         ShellSectionRootViewController? _rootViewController;
 
         Page? _displayedPage;
@@ -278,8 +283,25 @@ namespace Microsoft.Maui.Controls.Handlers
             UIViewController viewController)
         {
             // Resolve an interactive-pop completion that was started in OnInteractivePopCompleted.
+            var wasInteractivePop = _interactivePopTcs != null;
             _interactivePopTcs?.TrySetResult(true);
             _interactivePopTcs = null;
+
+            // Detect unsolicited pops (iOS long-press back navigation, iOS 14+).
+            // Long-press back bypasses shouldPopItem: — UIKit pops directly without notifying us.
+            // Skip detection while a push is still in flight: UIKit's rescheduleBlock causes
+            // shellStack.Count > ActiveViewControllers().Length until the queued push completes.
+            if (_pendingPushCount > 0)
+                _pendingPushCount--;
+
+            var shellStack = VirtualView?.Stack;
+            if (!wasInteractivePop &&
+                _pendingPushCount == 0 &&
+                shellStack is { Count: > 1 } &&
+                ActiveViewControllers().Length < shellStack.Count)
+            {
+                SendPoppedOnCompletion(Task.CompletedTask);
+            }
 
             if (!_firstLayoutCompleted)
             {
@@ -1523,6 +1545,7 @@ namespace Microsoft.Maui.Controls.Handlers
         {
             if (_navManager is not null)
             {
+                _pendingPushCount++;
                 return _navManager.PushViewController(viewController, animated);
             }
             return new TaskCompletionSource<bool>();
