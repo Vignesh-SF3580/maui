@@ -483,14 +483,7 @@ internal class FlyoutContainerManager
 			flyoutFrame.Height = (nfloat)_flyoutHeight;
 
 		// Calculate flyout width
-		if (FlyoutOverlapsDetailsInPopoverMode)
-		{
-			flyoutFrame.Width = GetFlyoutWidth(frame, forOverlap: true);
-		}
-		else
-		{
-			flyoutFrame.Width = GetFlyoutWidth(frame, forOverlap: false);
-		}
+		flyoutFrame.Width = GetFlyoutWidth(frame);
 
 		// RTL: flyout on right side (phone mode only)
 		if (IsRTL && !FlyoutOverlapsDetailsInPopoverMode)
@@ -627,7 +620,7 @@ internal class FlyoutContainerManager
 		}
 	}
 
-	nfloat GetFlyoutWidth(CGRect containerFrame, bool forOverlap)
+	nfloat GetFlyoutWidth(CGRect containerFrame)
 	{
 		if (_flyoutWidth > 0)
 		{

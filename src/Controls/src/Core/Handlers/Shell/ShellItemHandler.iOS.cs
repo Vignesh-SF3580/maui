@@ -150,6 +150,7 @@ namespace Microsoft.Maui.Controls.Handlers
             CurrentRenderer = null;
             _currentSection = null;
             _displayedPage = null;
+            _moreNavigationDelegate = null;
             _appearanceTracker?.Dispose();
             _appearanceTracker = null;
             _shellContext = null;

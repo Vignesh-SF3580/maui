@@ -1160,11 +1160,19 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 			// UIKit rejects PushViewController calls while a modal presentation is occurring
 			// (including an active UISearchController). Using DidDismissSearchController ensures
 			// the push is not attempted until the dismissal animation is complete.
-			searchController.Delegate = new SearchItemSelectedDelegate(() =>
+			if (searchController.Active)
 			{
+				searchController.Delegate = new SearchItemSelectedDelegate(() =>
+				{
+					handlerController?.ItemSelected(e);
+				});
+				searchController.Active = false;
+			}
+			else
+			{
+				// Already dismissed — fire ItemSelected directly.
 				handlerController?.ItemSelected(e);
-			});
-			searchController.Active = false;
+			}
 		}
 
 		// One-shot UISearchControllerDelegate that fires ItemSelected after dismissal completes.

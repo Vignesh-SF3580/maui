@@ -54,6 +54,7 @@ namespace Microsoft.Maui.Controls.Handlers
             base.ConnectHandler(platformView);
 
             ShellController.AddAppearanceObserver(this, VirtualView);
+            VirtualView.Navigated += OnShellNavigated;
 
             SetupFlyout();
 
@@ -66,6 +67,7 @@ namespace Microsoft.Maui.Controls.Handlers
         protected override void DisconnectHandler(UIView platformView)
         {
             ShellController.RemoveAppearanceObserver(this);
+            VirtualView.Navigated -= OnShellNavigated;
             ((IShellController)VirtualView).RemoveFlyoutBehaviorObserver(this);
 
             _flyoutManager?.TearDown();
@@ -222,6 +224,14 @@ namespace Microsoft.Maui.Controls.Handlers
             {
                 _backdropBrush = appearance.FlyoutBackdrop;
 
+                var scrimView = _flyoutManager?.ScrimView;
+                if (scrimView is not null)
+                {
+                    scrimView.UpdateBackground(_backdropBrush);
+                    if (Brush.IsNullOrEmpty(_backdropBrush))
+                        scrimView.BackgroundColor = UIColor.Clear;
+                }
+
                 if (_flyoutWidth != appearance.FlyoutWidth)
                 {
                     _flyoutWidth = appearance.FlyoutWidth;
@@ -295,11 +305,17 @@ namespace Microsoft.Maui.Controls.Handlers
             _flyoutManager?.SetDetailViewController(_detailContainerVC);
             _flyoutManager?.UpdateApplyShadow(true);
             _flyoutManager?.SetShadowBackgroundColor(UIColor.SystemBackground);
+            _flyoutManager?.UpdateIsGestureEnabled(((IShellContext)this).AllowFlyoutGesture);
 
             ((IShellController)VirtualView).AddFlyoutBehaviorObserver(this);
 
             _flyoutManager?.UpdateIsPresented(VirtualView.FlyoutIsPresented, animated: false);
             UpdateFlowDirection();
+        }
+
+        void OnShellNavigated(object? sender, ShellNavigatedEventArgs e)
+        {
+            _flyoutManager?.UpdateIsGestureEnabled(((IShellContext)this).AllowFlyoutGesture);
         }
 
         static bool IsSwipeView(UIView? view)

@@ -178,6 +178,7 @@ namespace Microsoft.Maui.Controls.Handlers
         {
             _pageAnimation?.StopAnimation(true);
             _pageAnimation = null;
+            _pendingPushCount = 0;
 
             if (_displayedPage is not null)
             {
@@ -940,6 +941,8 @@ namespace Microsoft.Maui.Controls.Handlers
                     if (!showsPresentation)
                     {
                         CompletePushImmediately(pageViewController);
+                        if (_pendingPushCount > 0)
+                            _pendingPushCount--;
                         completionSource.TrySetResult(true);
                     }
                     else
