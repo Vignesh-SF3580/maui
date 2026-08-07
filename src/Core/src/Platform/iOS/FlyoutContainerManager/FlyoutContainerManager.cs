@@ -519,7 +519,9 @@ internal class FlyoutContainerManager
 				detailFrame.Width -= flyoutFrame.Width;
 			}
 
-			if (_applyShadow)
+			// Shadow only makes sense in overlay mode (flyout on top of detail).
+			// In split/Locked mode the detail is beside the flyout — don't dim it.
+			if (_applyShadow && !ShouldShowSplitMode)
 			{
 				opacity = 0.5f;
 			}
