@@ -94,7 +94,7 @@ namespace Microsoft.Maui.Controls.Handlers
             _tabBarController.ShouldSelectViewController = (tabController, viewController) =>
             {
                 bool accept = true;
-                var renderer = viewController is null ? null : RendererForViewController(viewController!);
+                var renderer = viewController is null ? null : RendererForViewController(viewController);
                 if (renderer is not null)
                 {
                     // iOS 26+ can still drag-select disabled tabs.
@@ -323,7 +323,9 @@ namespace Microsoft.Maui.Controls.Handlers
             // Reapply after attaching the shared tab bar; the earlier RTL update runs too soon.
             UpdateTabBarFlowDirection();
 
-            SetTabItemsEnabledState();
+            // Apply enabled/badge state once the tab bar has appeared. Applying it earlier
+            // doesn't reliably affect the native tab bar UI yet.
+            // SetTabItemsEnabledState() is called from OnTabManagerViewDidAppear instead.
 
             UpdateTabBarHidden();
 
@@ -362,6 +364,10 @@ namespace Microsoft.Maui.Controls.Handlers
 
         void OnTabManagerViewDidAppear(object? sender, EventArgs e)
         {
+            // Apply enabled/badge state once the tab bar has appeared. Applying it earlier
+            // doesn't reliably affect the native tab bar UI yet.
+            SetTabItemsEnabledState();
+
             _displayedPage?.SendAppearing();
         }
 

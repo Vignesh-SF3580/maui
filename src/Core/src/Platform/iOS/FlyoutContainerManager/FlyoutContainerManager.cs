@@ -406,7 +406,9 @@ internal class FlyoutContainerManager
 	internal void SetShadowBackgroundColor(UIColor color)
 	{
 		if (_detailContainerView is not null)
+		{
 			_detailContainerView.BackgroundColor = color;
+		}
 	}
 
 	/// <summary>Sets the scrim (click-off overlay) background color. Pass <c>null</c> to reset to transparent.</summary>
@@ -480,7 +482,9 @@ internal class FlyoutContainerManager
 
 		// Apply custom flyout height when set; default uses full frame height.
 		if (_flyoutHeight > 0)
+		{
 			flyoutFrame.Height = (nfloat)_flyoutHeight;
+		}
 
 		// Calculate flyout width
 		flyoutFrame.Width = GetFlyoutWidth(frame);
@@ -700,9 +704,13 @@ internal class FlyoutContainerManager
 		// In overlay mode, insert below the flyout so the flyout covers the left portion of any
 		// gradient backdrop — matching the old ShellFlyoutRenderer TapoffView behavior.
 		if (FlyoutOverlapsDetailsInPopoverMode && _flyoutContainerView is not null)
+		{
 			parentView.InsertSubviewBelow(_clickOffView, _flyoutContainerView);
+		}
 		else
+		{
 			parentView.AddSubview(_clickOffView);
+		}
 
 		UpdateClickOffViewFrame();
 	}

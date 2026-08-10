@@ -274,7 +274,9 @@ namespace Microsoft.Maui.Controls.Handlers
         bool INavigationManagerDelegate.ShouldPop()
         {
             if (_sendPopPending)
+            {
                 return false;
+            }
 
             return SendPop();
         }
@@ -284,7 +286,7 @@ namespace Microsoft.Maui.Controls.Handlers
             UIViewController viewController)
         {
             // Resolve an interactive-pop completion that was started in OnInteractivePopCompleted.
-            var wasInteractivePop = _interactivePopTcs != null;
+            var wasInteractivePop = _interactivePopTcs is not null;
             _interactivePopTcs?.TrySetResult(true);
             _interactivePopTcs = null;
 
@@ -293,7 +295,9 @@ namespace Microsoft.Maui.Controls.Handlers
             // Skip detection while a push is still in flight: UIKit's rescheduleBlock causes
             // shellStack.Count > ActiveViewControllers().Length until the queued push completes.
             if (_pendingPushCount > 0)
+            {
                 _pendingPushCount--;
+            }
 
             var shellStack = VirtualView?.Stack;
             if (!wasInteractivePop &&
@@ -942,7 +946,9 @@ namespace Microsoft.Maui.Controls.Handlers
                     {
                         CompletePushImmediately(pageViewController);
                         if (_pendingPushCount > 0)
+                        {
                             _pendingPushCount--;
+                        }
                         completionSource.TrySetResult(true);
                     }
                     else

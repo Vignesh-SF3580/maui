@@ -229,7 +229,9 @@ namespace Microsoft.Maui.Controls.Handlers
                 {
                     scrimView.UpdateBackground(_backdropBrush);
                     if (Brush.IsNullOrEmpty(_backdropBrush))
+                    {
                         scrimView.BackgroundColor = UIColor.Clear;
+                    }
                 }
 
                 if (_flyoutWidth != appearance.FlyoutWidth)
@@ -494,12 +496,16 @@ namespace Microsoft.Maui.Controls.Handlers
 
             var scrimView = handler._flyoutManager?.ScrimView;
             if (scrimView is null)
+            {
                 return;
+            }
 
             scrimView.UpdateBackground(shell.FlyoutBackdrop);
 
             if (Brush.IsNullOrEmpty(shell.FlyoutBackdrop))
+            {
                 scrimView.BackgroundColor = UIColor.Clear;
+            }
         }
 
         public static void MapFlyoutHeader(ShellHandler handler, Shell shell)
@@ -621,8 +627,9 @@ namespace Microsoft.Maui.Controls.Handlers
             public override bool PrefersStatusBarHidden()
                 => Shell?.CurrentPage?.OnThisPlatform()?.PrefersStatusBarHidden() == StatusBarHiddenMode.True;
 
-            // Return null so UIKit calls PrefersStatusBarHidden()/PrefersHomeIndicatorAutoHidden on this VC
-            // directly; the base (FlyoutContainerViewController) delegates to _detailContainerVC which has no overrides.
+            // null cancels the base class's redirect to _detailContainerVC (an empty layout-only
+            // VC), so iOS asks this VC directly and reaches PrefersStatusBarHidden()/
+            // PrefersHomeIndicatorAutoHidden above instead.
             public override UIViewController? ChildViewControllerForStatusBarHidden() => null;
             public override UIViewController? ChildViewControllerForHomeIndicatorAutoHidden => null;
 

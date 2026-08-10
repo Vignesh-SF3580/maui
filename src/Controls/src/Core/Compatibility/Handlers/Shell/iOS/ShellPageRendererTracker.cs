@@ -1189,7 +1189,9 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 			public override void DidDismissSearchController(UISearchController searchController)
 			{
 				if (_fired)
+				{
 					return;
+				}
 				_fired = true;
 				_onDismissed();
 			}
