@@ -1190,16 +1190,24 @@ namespace Microsoft.Maui.Controls.Handlers
 
             VirtualView.Icon.LoadImage(VirtualView.FindMauiContext()!, icon =>
             {
+                // VirtualView (typed) throws if accessed after disconnect; check the interface
+                // member instead, which returns null. The pattern match also gives us a safe,
+                // non-throwing local to use for the rest of the callback.
+                if (((IElementHandler)this).VirtualView is not ShellSection section)
+                {
+                    return;
+                }
+
                 UIImage? image = null;
                 if (icon?.Value is not null)
                 {
                     image = TabbedViewExtensions.AutoResizeTabBarImage(_navigationController.TraitCollection, icon.Value);
                 }
-                _navigationController.TabBarItem = new UITabBarItem(VirtualView.Title, image, null);
-                _navigationController.TabBarItem.AccessibilityIdentifier = VirtualView.AutomationId ?? VirtualView.Title;
+                _navigationController.TabBarItem = new UITabBarItem(section.Title, image, null);
+                _navigationController.TabBarItem.AccessibilityIdentifier = section.AutomationId ?? section.Title;
 
                 // Reapply badge state after recreating UITabBarItem.
-                ShellItemHandler.UpdateTabBarItemBadge(_navigationController.TabBarItem, VirtualView);
+                ShellItemHandler.UpdateTabBarItemBadge(_navigationController.TabBarItem, section);
             });
         }
 

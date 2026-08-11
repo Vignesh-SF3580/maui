@@ -267,10 +267,14 @@ namespace Microsoft.Maui.Controls.Handlers
             _tabManager?.RaiseViewDidDisappear();
         }
 
-        void ITabBarManagerDelegate.OnViewDidLayoutSubviews()
+        void ITabBarManagerDelegate.OnViewWillLayoutSubviews()
         {
             UpdateTabBarHidden();
             UpdateLargeTitles();
+        }
+
+        void ITabBarManagerDelegate.OnViewDidLayoutSubviews()
+        {
             _appearanceTracker?.UpdateLayout(_tabBarController);
             UpdateNavBarHidden();
         }
@@ -922,7 +926,7 @@ namespace Microsoft.Maui.Controls.Handlers
 
         #region Layout
 
-        // Layout callbacks are forwarded through ITabBarManagerDelegate.OnViewDidLayoutSubviews.
+        // Layout callbacks are forwarded through ITabBarManagerDelegate.OnViewWillLayoutSubviews/OnViewDidLayoutSubviews.
 
         #endregion
 

@@ -33,6 +33,8 @@ internal class FlyoutContainerManager
 	bool _isPresented;
 	bool _isGestureEnabled = true;
 	bool _applyShadow;
+	bool _skipShadowInSplitMode;
+	bool _preservePresentedStateOnTransition;
 	bool _initialLayoutFinished;
 	bool _flyoutOverlapsDetail;
 
@@ -48,7 +50,7 @@ internal class FlyoutContainerManager
 	}
 
 
-	/// <summary>Sets whether the flyout overlaps the detail pane regardless of device idiom.</summary>
+	/// <summary>Sets whether the flyout overlaps the detail pane regardless of device idiom. Used by Shell, which always overlays.</summary>
 	internal void SetFlyoutOverlapsDetail(bool overlaps)
 	{
 		_flyoutOverlapsDetail = overlaps;
@@ -73,7 +75,7 @@ internal class FlyoutContainerManager
 	/// </summary>
 	internal UIViewController? ActiveDetailViewController => _detailVC;
 
-	/// <summary>Exposes the scrim (click-off) view so callers can apply brush-based backgrounds (e.g. gradients).</summary>
+	/// <summary>Exposes the scrim (click-off) view so callers can apply brush-based backgrounds (e.g. gradients). Used by Shell.</summary>
 	internal UIView? ScrimView => _clickOffView;
 
 	bool ShouldShowSplitMode
@@ -155,10 +157,8 @@ internal class FlyoutContainerManager
 			if (FlyoutOverlapsDetailsInPopoverMode)
 			{
 				// notifyDelegate: false — rotation is platform-initiated.
-				// Preserve the current presented state; only force-open when split mode requires it.
-				// Previously this forced closed (shouldSplit=false → SetPresented(false)) which
-				// dismissed the flyout on rotation in Shell overlay mode.
-				bool targetPresented = shouldSplit || _isPresented;
+				// Preserve manual presented state only if the consumer opted in (see SetPreservePresentedStateOnTransition).
+				bool targetPresented = shouldSplit || (_preservePresentedStateOnTransition && _isPresented);
 				SetPresented(targetPresented, animated: true, notifyDelegate: false);
 			}
 			else if (!shouldSplit && _isPresented)
@@ -296,9 +296,9 @@ internal class FlyoutContainerManager
 			return;
 		}
 
-		// Flyout mode preserves current presented state; only Locked forces open and Disabled forces closed.
-		// This matches the old ShellFlyoutRenderer which never changed IsOpen when switching to Flyout.
-		bool shouldPresent = _isPresented;
+		// Resolving to Flyout mode: preserve presented state only if opted in (see SetPreservePresentedStateOnTransition),
+		// otherwise force-close/open to match ShouldShowSplitMode.
+		bool shouldPresent;
 		if (behavior == FlyoutBehavior.Disabled)
 		{
 			shouldPresent = false;
@@ -306,6 +306,10 @@ internal class FlyoutContainerManager
 		else if (behavior == FlyoutBehavior.Locked)
 		{
 			shouldPresent = true;
+		}
+		else
+		{
+			shouldPresent = _preservePresentedStateOnTransition ? _isPresented : ShouldShowSplitMode;
 		}
 
 		bool stateChanged = shouldPresent != _isPresented;
@@ -341,6 +345,7 @@ internal class FlyoutContainerManager
 		}
 	}
 
+	/// <summary>Used by Shell, which supports a fixed flyout height; FlyoutPage always uses full height.</summary>
 	internal void UpdateFlyoutHeight(double height)
 	{
 		_flyoutHeight = height;
@@ -401,8 +406,27 @@ internal class FlyoutContainerManager
 		_applyShadow = applyShadow;
 	}
 
+	/// <summary>
+	/// Skips dimming the detail view in split/Locked mode. Defaults to <see langword="false"/>
+	/// (always dim when the shadow is applied); Shell opts in with <see langword="true"/>.
+	/// </summary>
+	internal void SetSkipShadowInSplitMode(bool skip)
+	{
+		_skipShadowInSplitMode = skip;
+	}
+
+	/// <summary>
+	/// Preserves a manually-opened flyout's presented state across rotation and <see cref="FlyoutBehavior"/>
+	/// changes. Defaults to <see langword="false"/> (always resolves to <see cref="ShouldShowSplitMode"/>);
+	/// Shell opts in with <see langword="true"/>.
+	/// </summary>
+	internal void SetPreservePresentedStateOnTransition(bool preserve)
+	{
+		_preservePresentedStateOnTransition = preserve;
+	}
+
 	/// <summary>Sets the background color shown behind the detail content when <see cref="UpdateApplyShadow"/> dims it.
-	/// Defaults to black. Pass <see cref="UIColor.SystemBackground"/> to replicate a light-overlay dim (Shell's historical behavior).</summary>
+	/// Defaults to black. Pass <see cref="UIColor.SystemBackground"/> to replicate a light-overlay dim (Shell's historical behavior). Used by Shell.</summary>
 	internal void SetShadowBackgroundColor(UIColor color)
 	{
 		if (_detailContainerView is not null)
@@ -411,7 +435,7 @@ internal class FlyoutContainerManager
 		}
 	}
 
-	/// <summary>Sets the scrim (click-off overlay) background color. Pass <c>null</c> to reset to transparent.</summary>
+	/// <summary>Sets the scrim (click-off overlay) background color. Pass <c>null</c> to reset to transparent. Used by Shell.</summary>
 	internal void SetScrimColor(UIColor? color)
 	{
 		if (_clickOffView is not null)
@@ -517,8 +541,8 @@ internal class FlyoutContainerManager
 			}
 
 			// Shadow only makes sense in overlay mode (flyout on top of detail).
-			// In split/Locked mode the detail is beside the flyout — don't dim it.
-			if (_applyShadow && !ShouldShowSplitMode)
+			// Skip dimming in split/Locked mode only if opted in (see SetSkipShadowInSplitMode).
+			if (_applyShadow && !(_skipShadowInSplitMode && ShouldShowSplitMode))
 			{
 				opacity = 0.5f;
 			}

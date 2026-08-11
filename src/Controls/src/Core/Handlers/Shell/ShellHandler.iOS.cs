@@ -43,6 +43,10 @@ namespace Microsoft.Maui.Controls.Handlers
             // Must be set before .View is accessed: PackContainers (called from ViewDidLoad) reads this flag
             // to decide the z-order of flyout vs detail containers. Shell always uses overlay mode.
             _flyoutManager.SetFlyoutOverlapsDetail(true);
+            // Shell doesn't dim the detail view in split/Locked mode; FlyoutPage's default (always dim) stays unchanged.
+            _flyoutManager.SetSkipShadowInSplitMode(true);
+            // Shell keeps a manually-opened flyout presented across rotation and behavior changes; FlyoutPage always force-closes.
+            _flyoutManager.SetPreservePresentedStateOnTransition(true);
             var hostVC = new ShellHostViewController(this, _flyoutManager);
             ViewController = hostVC;
             // Accessing .View forces ViewDidLoad — FlyoutContainerViewController sets up manager containers there.
@@ -397,9 +401,11 @@ namespace Microsoft.Maui.Controls.Handlers
             _incomingRenderer = value;
             await _activeTransition;
 
-            // Selection changed while the previous transition was finishing.
-            if (_incomingRenderer != value ||
-                value.ShellItem != VirtualView.CurrentItem)
+            // Selection changed (or the handler disconnected) while the previous transition was finishing.
+            // Check the interface member first - the typed VirtualView throws instead of returning null.
+            if (((IElementHandler)this).VirtualView is not Shell shell ||
+                _incomingRenderer != value ||
+                value.ShellItem != shell.CurrentItem)
             {
                 (value as IDisconnectable)?.Disconnect();
                 value?.Dispose();
