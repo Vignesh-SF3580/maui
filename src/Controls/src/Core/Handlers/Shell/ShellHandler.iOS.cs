@@ -40,13 +40,6 @@ namespace Microsoft.Maui.Controls.Handlers
         protected override UIView CreatePlatformView()
         {
             _flyoutManager = new FlyoutContainerManager(containerDelegate: this);
-            // Must be set before .View is accessed: PackContainers (called from ViewDidLoad) reads this flag
-            // to decide the z-order of flyout vs detail containers. Shell always uses overlay mode.
-            _flyoutManager.SetFlyoutOverlapsDetail(true);
-            // Shell doesn't dim the detail view in split/Locked mode; FlyoutPage's default (always dim) stays unchanged.
-            _flyoutManager.SetSkipShadowInSplitMode(true);
-            // Shell keeps a manually-opened flyout presented across rotation and behavior changes; FlyoutPage always force-closes.
-            _flyoutManager.SetPreservePresentedStateOnTransition(true);
             var hostVC = new ShellHostViewController(this, _flyoutManager);
             ViewController = hostVC;
             // Accessing .View forces ViewDidLoad — FlyoutContainerViewController sets up manager containers there.
@@ -292,6 +285,18 @@ namespace Microsoft.Maui.Controls.Handlers
             => VirtualView?.FlyoutIsPresented ?? false;
 
         bool IFlyoutContainerDelegate.GetIgnoreSafeArea()
+            => true;
+
+        // Shell always uses overlay mode, regardless of device idiom.
+        bool IFlyoutContainerDelegate.GetFlyoutOverlapsDetail()
+            => true;
+
+        // Shell doesn't dim the detail view in split/Locked mode; FlyoutPage's default (always dim) stays unchanged.
+        bool IFlyoutContainerDelegate.GetSkipShadowInSplitMode()
+            => true;
+
+        // Shell keeps a manually-opened flyout presented across rotation and behavior changes; FlyoutPage always force-closes.
+        bool IFlyoutContainerDelegate.GetPreservePresentedStateOnTransition()
             => true;
 
         #endregion

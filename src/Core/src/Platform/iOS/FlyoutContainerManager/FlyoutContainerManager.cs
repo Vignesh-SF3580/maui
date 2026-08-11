@@ -50,16 +50,10 @@ internal class FlyoutContainerManager
 	}
 
 
-	/// <summary>Sets whether the flyout overlaps the detail pane regardless of device idiom. Used by Shell, which always overlays.</summary>
-	internal void SetFlyoutOverlapsDetail(bool overlaps)
-	{
-		_flyoutOverlapsDetail = overlaps;
-	}
-
 	/// <summary>
 	/// On iPad, the flyout overlaps the detail (slides over from left).
 	/// On iPhone, the detail slides right to reveal the flyout behind it.
-	/// Consumers can override via SetFlyoutOverlapsDetail(true) to force overlay mode.
+	/// Consumers can override via <see cref="IFlyoutContainerDelegate.GetFlyoutOverlapsDetail"/> to force overlay mode.
 	/// </summary>
 	bool FlyoutOverlapsDetailsInPopoverMode =>
 		_flyoutOverlapsDetail || UIDevice.CurrentDevice.UserInterfaceIdiom == UIUserInterfaceIdiom.Pad;
@@ -102,6 +96,15 @@ internal class FlyoutContainerManager
 	internal void SetupContainerViews(UIViewController parentVC)
 	{
 		_parentVCRef = new WeakReference<UIViewController>(parentVC);
+
+		// Query Shell-vs-FlyoutPage behavior differences from the delegate before PackContainers
+		// reads _flyoutOverlapsDetail to decide the z-order of flyout vs detail containers.
+		if (_delegateRef.TryGetTarget(out var configDelegate))
+		{
+			_flyoutOverlapsDetail = configDelegate.GetFlyoutOverlapsDetail();
+			_skipShadowInSplitMode = configDelegate.GetSkipShadowInSplitMode();
+			_preservePresentedStateOnTransition = configDelegate.GetPreservePresentedStateOnTransition();
+		}
 
 		var parentView = parentVC.View!;
 		_flyoutContainerView = new UIView { ClipsToBounds = true };
@@ -157,7 +160,7 @@ internal class FlyoutContainerManager
 			if (FlyoutOverlapsDetailsInPopoverMode)
 			{
 				// notifyDelegate: false — rotation is platform-initiated.
-				// Preserve manual presented state only if the consumer opted in (see SetPreservePresentedStateOnTransition).
+				// Preserve manual presented state only if the consumer opted in (see IFlyoutContainerDelegate.GetPreservePresentedStateOnTransition).
 				bool targetPresented = shouldSplit || (_preservePresentedStateOnTransition && _isPresented);
 				SetPresented(targetPresented, animated: true, notifyDelegate: false);
 			}
@@ -296,7 +299,7 @@ internal class FlyoutContainerManager
 			return;
 		}
 
-		// Resolving to Flyout mode: preserve presented state only if opted in (see SetPreservePresentedStateOnTransition),
+		// Resolving to Flyout mode: preserve presented state only if opted in (see IFlyoutContainerDelegate.GetPreservePresentedStateOnTransition),
 		// otherwise force-close/open to match ShouldShowSplitMode.
 		bool shouldPresent;
 		if (behavior == FlyoutBehavior.Disabled)
@@ -404,25 +407,6 @@ internal class FlyoutContainerManager
 	internal void UpdateApplyShadow(bool applyShadow)
 	{
 		_applyShadow = applyShadow;
-	}
-
-	/// <summary>
-	/// Skips dimming the detail view in split/Locked mode. Defaults to <see langword="false"/>
-	/// (always dim when the shadow is applied); Shell opts in with <see langword="true"/>.
-	/// </summary>
-	internal void SetSkipShadowInSplitMode(bool skip)
-	{
-		_skipShadowInSplitMode = skip;
-	}
-
-	/// <summary>
-	/// Preserves a manually-opened flyout's presented state across rotation and <see cref="FlyoutBehavior"/>
-	/// changes. Defaults to <see langword="false"/> (always resolves to <see cref="ShouldShowSplitMode"/>);
-	/// Shell opts in with <see langword="true"/>.
-	/// </summary>
-	internal void SetPreservePresentedStateOnTransition(bool preserve)
-	{
-		_preservePresentedStateOnTransition = preserve;
 	}
 
 	/// <summary>Sets the background color shown behind the detail content when <see cref="UpdateApplyShadow"/> dims it.
@@ -541,7 +525,7 @@ internal class FlyoutContainerManager
 			}
 
 			// Shadow only makes sense in overlay mode (flyout on top of detail).
-			// Skip dimming in split/Locked mode only if opted in (see SetSkipShadowInSplitMode).
+			// Skip dimming in split/Locked mode only if opted in (see IFlyoutContainerDelegate.GetSkipShadowInSplitMode).
 			if (_applyShadow && !(_skipShadowInSplitMode && ShouldShowSplitMode))
 			{
 				opacity = 0.5f;
