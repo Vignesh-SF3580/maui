@@ -1162,10 +1162,11 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 			// the push is not attempted until the dismissal animation is complete.
 			if (searchController.Active)
 			{
+				var previousDelegate = searchController.Delegate;
 				searchController.Delegate = new SearchItemSelectedDelegate(() =>
 				{
 					handlerController?.ItemSelected(e);
-				});
+				}, previousDelegate);
 				searchController.Active = false;
 			}
 			else
@@ -1175,15 +1176,19 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 			}
 		}
 
-		// One-shot UISearchControllerDelegate that fires ItemSelected after dismissal completes.
+		// One-shot UISearchControllerDelegate that fires ItemSelected after dismissal completes,
+		// then restores whatever delegate (if any) was previously installed on the search
+		// controller, so this temporary hookup doesn't permanently clobber other delegate behavior.
 		sealed class SearchItemSelectedDelegate : UISearchControllerDelegate
 		{
 			readonly Action _onDismissed;
+			readonly IUISearchControllerDelegate? _previousDelegate;
 			bool _fired;
 
-			internal SearchItemSelectedDelegate(Action onDismissed)
+			internal SearchItemSelectedDelegate(Action onDismissed, IUISearchControllerDelegate? previousDelegate)
 			{
 				_onDismissed = onDismissed;
+				_previousDelegate = previousDelegate;
 			}
 
 			public override void DidDismissSearchController(UISearchController searchController)
@@ -1193,6 +1198,12 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 					return;
 				}
 				_fired = true;
+
+				if (searchController.Delegate == this)
+				{
+					searchController.Delegate = _previousDelegate!;
+				}
+
 				_onDismissed();
 			}
 		}
