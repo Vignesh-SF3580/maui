@@ -1,6 +1,8 @@
 #nullable disable
 using System;
 using CoreGraphics;
+using Microsoft.Maui.Controls.Handlers.Compatibility;
+using Microsoft.Maui.Platform;
 using ObjCRuntime;
 using UIKit;
 
@@ -26,6 +28,8 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 
 		public virtual void LayoutViews(CGRect bounds, nfloat openPercent, UIView flyout, UIView shell, FlyoutBehavior behavior)
 		{
+			bool isRightToLeft = shell.SemanticContentAttribute == UISemanticContentAttribute.ForceRightToLeft;
+
 			if (behavior == FlyoutBehavior.Locked)
 				openPercent = 1;
 
@@ -48,13 +52,25 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 			nfloat openPixels = openLimit * openPercent;
 
 			if (behavior == FlyoutBehavior.Locked)
-				shell.Frame = new CGRect(bounds.X + flyoutWidth, bounds.Y, bounds.Width - flyoutWidth, flyoutHeight);
+			{
+				nfloat shellPositionX = isRightToLeft ? bounds.X : bounds.X + flyoutWidth;
+				shell.Frame = new CGRect(shellPositionX, bounds.Y, bounds.Width - flyoutWidth, flyoutHeight);
+			}
 			else
 				shell.Frame = bounds;
 
+			if (shell.FindDescendantView<MauiNavigationBar>() is MauiNavigationBar navigationBar)
+			{
+				bool removeHorizontalMargins = behavior == FlyoutBehavior.Locked &&
+					isRightToLeft &&
+					OperatingSystem.IsIOSVersionAtLeast(18) &&
+					!OperatingSystem.IsIOSVersionAtLeast(26);
+				navigationBar.UpdateHorizontalMargins(removeHorizontalMargins);
+			}
+
 			var shellWidth = shell.Frame.Width;
 
-			if (shell.SemanticContentAttribute == UISemanticContentAttribute.ForceRightToLeft)
+			if (isRightToLeft)
 			{
 				var positionX = shellWidth - openPixels;
 

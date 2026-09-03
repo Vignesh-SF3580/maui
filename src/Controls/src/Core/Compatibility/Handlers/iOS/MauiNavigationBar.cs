@@ -13,6 +13,7 @@ internal class MauiNavigationBar : UINavigationBar
 {
 	internal bool TitleBarNeedsRefresh { get; set; }
 	nfloat? _originalSafeAreaConstant = null;
+	UIEdgeInsets? _originalLayoutMargins;
 
 	[Internals.Preserve(Conditional = true)]
 	public MauiNavigationBar() : base()
@@ -107,5 +108,21 @@ internal class MauiNavigationBar : UINavigationBar
 			Superview?.SetNeedsLayout();
 			TitleBarNeedsRefresh = false;
 		}
+	}
+
+	internal void UpdateHorizontalMargins(bool removeHorizontalMargins)
+	{
+		if (removeHorizontalMargins)
+		{
+			_originalLayoutMargins ??= LayoutMargins;
+			LayoutMargins = new UIEdgeInsets(LayoutMargins.Top, 0, LayoutMargins.Bottom, 0);
+		}
+		else if (_originalLayoutMargins is UIEdgeInsets originalLayoutMargins)
+		{
+			LayoutMargins = originalLayoutMargins;
+			_originalLayoutMargins = null;
+		}
+
+		SetNeedsLayout();
 	}
 }
