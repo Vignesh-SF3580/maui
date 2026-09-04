@@ -81,7 +81,14 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 				SetNavigationBar(shell.FindDescendantView<MauiNavigationBar>());
 			}
 
-			_navigationBar?.UpdateHorizontalMargins(removeHorizontalMargins);
+			if (removeHorizontalMargins)
+			{
+				_navigationBar?.UpdateHorizontalMargins(true);
+			}
+			else
+			{
+				SetNavigationBar(null);
+			}
 
 			var shellWidth = shell.Frame.Width;
 

@@ -16,6 +16,8 @@ internal class MauiNavigationBar : UINavigationBar
 	nfloat _originalLeftLayoutMargin;
 	nfloat _originalRightLayoutMargin;
 	bool _horizontalMarginsRemoved;
+	bool _restoreHorizontalMargins;
+	bool _updatingHorizontalMargins;
 
 	[Internals.Preserve(Conditional = true)]
 	public MauiNavigationBar() : base()
@@ -112,6 +114,16 @@ internal class MauiNavigationBar : UINavigationBar
 		}
 	}
 
+	public override void LayoutMarginsDidChange()
+	{
+		base.LayoutMarginsDidChange();
+
+		if (_horizontalMarginsRemoved && !_updatingHorizontalMargins)
+		{
+			_restoreHorizontalMargins = false;
+		}
+	}
+
 	internal void UpdateHorizontalMargins(bool removeHorizontalMargins)
 	{
 		var margins = LayoutMargins;
@@ -122,10 +134,12 @@ internal class MauiNavigationBar : UINavigationBar
 			{
 				_originalLeftLayoutMargin = margins.Left;
 				_originalRightLayoutMargin = margins.Right;
+				_restoreHorizontalMargins = true;
 			}
 
 			_horizontalMarginsRemoved = true;
-			LayoutMargins = new UIEdgeInsets(margins.Top, 0, margins.Bottom, 0);
+			SetLayoutMargins(new UIEdgeInsets(margins.Top, 0, margins.Bottom, 0));
+			SetNeedsLayout();
 		}
 		else
 		{
@@ -136,17 +150,31 @@ internal class MauiNavigationBar : UINavigationBar
 
 			_horizontalMarginsRemoved = false;
 
-			// UIKit may already have restored margins appropriate for the current geometry.
-			if (margins.Left != 0 || margins.Right != 0)
+			if (!_restoreHorizontalMargins || margins.Left != 0 || margins.Right != 0)
+			{
+				_restoreHorizontalMargins = false;
 				return;
+			}
 
-			LayoutMargins = new UIEdgeInsets(
+			SetLayoutMargins(new UIEdgeInsets(
 				margins.Top,
 				_originalLeftLayoutMargin,
 				margins.Bottom,
-				_originalRightLayoutMargin);
+				_originalRightLayoutMargin));
+			_restoreHorizontalMargins = false;
 		}
+	}
 
-		SetNeedsLayout();
+	void SetLayoutMargins(UIEdgeInsets margins)
+	{
+		_updatingHorizontalMargins = true;
+		try
+		{
+			LayoutMargins = margins;
+		}
+		finally
+		{
+			_updatingHorizontalMargins = false;
+		}
 	}
 }
