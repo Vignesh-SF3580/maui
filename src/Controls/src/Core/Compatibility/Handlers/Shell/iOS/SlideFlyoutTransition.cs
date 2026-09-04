@@ -10,8 +10,19 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 {
 	public class SlideFlyoutTransition : IShellFlyoutTransition
 	{
+		MauiNavigationBar _navigationBar;
+
 		internal double Height { get; private set; } = -1d;
 		internal double Width { get; private set; } = -1d;
+
+		void SetNavigationBar(MauiNavigationBar navigationBar)
+		{
+			if (ReferenceEquals(_navigationBar, navigationBar))
+				return;
+
+			_navigationBar?.UpdateHorizontalMargins(false);
+			_navigationBar = navigationBar;
+		}
 
 		public virtual bool UpdateFlyoutSize(double height, double width)
 		{
@@ -59,14 +70,18 @@ namespace Microsoft.Maui.Controls.Platform.Compatibility
 			else
 				shell.Frame = bounds;
 
-			if (shell.FindDescendantView<MauiNavigationBar>() is MauiNavigationBar navigationBar)
+			bool removeHorizontalMargins = behavior == FlyoutBehavior.Locked &&
+				isRightToLeft &&
+				OperatingSystem.IsIOSVersionAtLeast(18) &&
+				!OperatingSystem.IsIOSVersionAtLeast(26);
+
+			if (removeHorizontalMargins &&
+				(_navigationBar is null || !_navigationBar.IsDescendantOfView(shell)))
 			{
-				bool removeHorizontalMargins = behavior == FlyoutBehavior.Locked &&
-					isRightToLeft &&
-					OperatingSystem.IsIOSVersionAtLeast(18) &&
-					!OperatingSystem.IsIOSVersionAtLeast(26);
-				navigationBar.UpdateHorizontalMargins(removeHorizontalMargins);
+				SetNavigationBar(shell.FindDescendantView<MauiNavigationBar>());
 			}
+
+			_navigationBar?.UpdateHorizontalMargins(removeHorizontalMargins);
 
 			var shellWidth = shell.Frame.Width;
 

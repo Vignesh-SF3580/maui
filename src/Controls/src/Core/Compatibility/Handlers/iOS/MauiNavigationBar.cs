@@ -13,7 +13,9 @@ internal class MauiNavigationBar : UINavigationBar
 {
 	internal bool TitleBarNeedsRefresh { get; set; }
 	nfloat? _originalSafeAreaConstant = null;
-	UIEdgeInsets? _originalLayoutMargins;
+	nfloat _originalLeftLayoutMargin;
+	nfloat _originalRightLayoutMargin;
+	bool _horizontalMarginsRemoved;
 
 	[Internals.Preserve(Conditional = true)]
 	public MauiNavigationBar() : base()
@@ -112,15 +114,37 @@ internal class MauiNavigationBar : UINavigationBar
 
 	internal void UpdateHorizontalMargins(bool removeHorizontalMargins)
 	{
+		var margins = LayoutMargins;
+
 		if (removeHorizontalMargins)
 		{
-			_originalLayoutMargins ??= LayoutMargins;
-			LayoutMargins = new UIEdgeInsets(LayoutMargins.Top, 0, LayoutMargins.Bottom, 0);
+			if (margins.Left != 0 || margins.Right != 0)
+			{
+				_originalLeftLayoutMargin = margins.Left;
+				_originalRightLayoutMargin = margins.Right;
+			}
+
+			_horizontalMarginsRemoved = true;
+			LayoutMargins = new UIEdgeInsets(margins.Top, 0, margins.Bottom, 0);
 		}
-		else if (_originalLayoutMargins is UIEdgeInsets originalLayoutMargins)
+		else
 		{
-			LayoutMargins = originalLayoutMargins;
-			_originalLayoutMargins = null;
+			if (!_horizontalMarginsRemoved)
+			{
+				return;
+			}
+
+			_horizontalMarginsRemoved = false;
+
+			// UIKit may already have restored margins appropriate for the current geometry.
+			if (margins.Left != 0 || margins.Right != 0)
+				return;
+
+			LayoutMargins = new UIEdgeInsets(
+				margins.Top,
+				_originalLeftLayoutMargin,
+				margins.Bottom,
+				_originalRightLayoutMargin);
 		}
 
 		SetNeedsLayout();
