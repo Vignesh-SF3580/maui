@@ -13,10 +13,8 @@ internal class MauiNavigationBar : UINavigationBar
 {
 	internal bool TitleBarNeedsRefresh { get; set; }
 	nfloat? _originalSafeAreaConstant = null;
-	nfloat _originalLeftLayoutMargin;
-	nfloat _originalRightLayoutMargin;
+	(nfloat Left, nfloat Right)? _originalHorizontalMargins;
 	bool _horizontalMarginsRemoved;
-	bool _restoreHorizontalMargins;
 	bool _updatingHorizontalMargins;
 
 	[Internals.Preserve(Conditional = true)]
@@ -120,7 +118,7 @@ internal class MauiNavigationBar : UINavigationBar
 
 		if (_horizontalMarginsRemoved && !_updatingHorizontalMargins)
 		{
-			_restoreHorizontalMargins = false;
+			_originalHorizontalMargins = null;
 		}
 	}
 
@@ -132,9 +130,7 @@ internal class MauiNavigationBar : UINavigationBar
 		{
 			if (margins.Left != 0 || margins.Right != 0)
 			{
-				_originalLeftLayoutMargin = margins.Left;
-				_originalRightLayoutMargin = margins.Right;
-				_restoreHorizontalMargins = true;
+				_originalHorizontalMargins = (margins.Left, margins.Right);
 			}
 
 			_horizontalMarginsRemoved = true;
@@ -150,18 +146,20 @@ internal class MauiNavigationBar : UINavigationBar
 
 			_horizontalMarginsRemoved = false;
 
-			if (!_restoreHorizontalMargins || margins.Left != 0 || margins.Right != 0)
+			if (_originalHorizontalMargins is not { } originalHorizontalMargins ||
+				margins.Left != 0 ||
+				margins.Right != 0)
 			{
-				_restoreHorizontalMargins = false;
+				_originalHorizontalMargins = null;
 				return;
 			}
 
 			SetLayoutMargins(new UIEdgeInsets(
 				margins.Top,
-				_originalLeftLayoutMargin,
+				originalHorizontalMargins.Left,
 				margins.Bottom,
-				_originalRightLayoutMargin));
-			_restoreHorizontalMargins = false;
+				originalHorizontalMargins.Right));
+			_originalHorizontalMargins = null;
 		}
 	}
 
