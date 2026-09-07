@@ -31,6 +31,31 @@ namespace Microsoft.Maui.Controls.Hosting;
 
 public static partial class AppHostBuilderExtensions
 {
+#if IOS || MACCATALYST
+	/// <summary>
+	/// Configures the app to use the iOS and Mac Catalyst Shell handler implementation instead of the compatibility renderer.
+	/// </summary>
+	/// <param name="builder">The <see cref="MauiAppBuilder"/> to configure.</param>
+	/// <returns>The configured <see cref="MauiAppBuilder"/>.</returns>
+	/// <remarks>
+	/// Call after <c>UseMauiApp&lt;TApp&gt;()</c>, or set <c>&lt;UseiOSShell2Handler&gt;true&lt;/UseiOSShell2Handler&gt;</c> in the project file.
+	/// </remarks>
+	public static MauiAppBuilder UseiOSShell2Handler(this MauiAppBuilder builder)
+	{
+		builder.ConfigureMauiHandlers(AddiOSShell2Handlers);
+
+		return builder;
+	}
+
+	static void AddiOSShell2Handlers(IMauiHandlersCollection handlersCollection)
+	{
+		handlersCollection.AddHandler<Shell, ShellHandler>();
+		handlersCollection.AddHandler<ShellItem, ShellItemHandler>();
+		handlersCollection.AddHandler<ShellSection, ShellSectionHandler>();
+		handlersCollection.AddHandler<ShellContent, ShellContentHandler>();
+	}
+#endif
+
 	/// <summary>
 	/// Configures the <see cref="MauiAppBuilder"/> to use the specified <typeparamref name="TApp"/> as the main application type.
 	/// </summary>
@@ -212,14 +237,24 @@ public static partial class AppHostBuilderExtensions
 		handlersCollection.AddHandler<SwipeItemView, SwipeItemViewHandler>();
 #endif
 
-#if ANDROID || IOS || MACCATALYST || WINDOWS || TIZEN
+#if IOS || MACCATALYST
+		if (RuntimeFeature.IsiOSShell2HandlerEnabled)
+		{
+			AddiOSShell2Handlers(handlersCollection);
+		}
+		else
+		{
+			handlersCollection.AddHandler<Shell, ShellRenderer>();
+		}
+#elif WINDOWS
 		handlersCollection.AddHandler<Shell, ShellHandler>();
 		handlersCollection.AddHandler<ShellItem, ShellItemHandler>();
 		handlersCollection.AddHandler<ShellSection, ShellSectionHandler>();
-#endif
-
-#if IOS || MACCATALYST || WINDOWS
 		handlersCollection.AddHandler<ShellContent, ShellContentHandler>();
+#elif ANDROID || TIZEN
+		handlersCollection.AddHandler<Shell, ShellHandler>();
+		handlersCollection.AddHandler<ShellItem, ShellItemHandler>();
+		handlersCollection.AddHandler<ShellSection, ShellSectionHandler>();
 #endif
 
 #if WINDOWS || ANDROID || TIZEN
