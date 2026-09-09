@@ -190,6 +190,19 @@ namespace Microsoft.Maui.Controls
 			stateName == CommonStates.PointerOver ||
 			stateName == ButtonElement.PressedVisualState;
 
+		internal static void UnapplyState(VisualElement visualElement, VisualState state, SetterSpecificity vsgSpecificity)
+		{
+			var baseSpecificity = vsgSpecificity.CopyStyle(1, 0, 0, 0);
+			var unapplySpecificity = IsSystemDrivenState(state.Name)
+				? baseSpecificity.WithFullVsmPriority()
+				: baseSpecificity;
+
+			foreach (var setter in state.Setters)
+			{
+				setter.UnApply(visualElement, unapplySpecificity);
+			}
+		}
+
 		/// <summary>
 		/// Determines whether the specified <paramref name="element"/> has any visual state groups defined.
 		/// </summary>
@@ -290,7 +303,7 @@ namespace Microsoft.Maui.Controls
 		public VisualStateGroupList(bool isDefault)
 		{
 			IsDefault = isDefault;
-			_internalList = new WatchAddList<VisualStateGroup>(ValidateAndNotify);
+			_internalList = new WatchList<VisualStateGroup>(ValidateAndNotify);
 		}
 
 		void ValidateAndNotify(object sender, EventArgs eventArgs)
@@ -481,7 +494,7 @@ namespace Microsoft.Maui.Controls
 		/// </summary>
 		public VisualStateGroup()
 		{
-			States = new WatchAddList<VisualState>(OnStatesChanged, OnStateRemoved);
+			States = new WatchList<VisualState>(OnStatesCollectionChanged, OnStateAdded, OnStateRemoving);
 		}
 
 		/// <summary>
@@ -656,7 +669,7 @@ namespace Microsoft.Maui.Controls
 
 		internal event EventHandler StatesChanged;
 
-		void OnStatesChanged(IList<VisualState> states)
+		void OnStatesCollectionChanged(IList<VisualState> states)
 		{
 			if (states.Any(state => string.IsNullOrEmpty(state.Name)))
 			{
@@ -671,8 +684,32 @@ namespace Microsoft.Maui.Controls
 			StatesChanged?.Invoke(this, EventArgs.Empty);
 		}
 
-		void OnStateRemoved(VisualState state)
+		void OnStateAdded(VisualState state)
 		{
+			if (VisualElement?.Window == null)
+			{
+				return;
+			}
+
+			foreach (var trigger in state.StateTriggers)
+			{
+				trigger.SendAttached();
+			}
+		}
+
+		void OnStateRemoving(VisualState state)
+		{
+			if (CurrentState == state)
+			{
+				if (VisualElement is { } visualElement &&
+					VisualStateManager.GetVisualStateGroups(visualElement) is VisualStateGroupList groups)
+				{
+					VisualStateManager.UnapplyState(visualElement, state, groups.Specificity);
+				}
+
+				CurrentState = null;
+			}
+
 			foreach (var trigger in state.StateTriggers)
 			{
 				trigger.SendDetached();
@@ -725,7 +762,7 @@ namespace Microsoft.Maui.Controls
 		public VisualState()
 		{
 			Setters = new ObservableCollection<Setter>();
-			StateTriggers = new WatchAddList<StateTriggerBase>(OnStateTriggersChanged);
+			StateTriggers = new WatchList<StateTriggerBase>(OnStateTriggersChanged);
 		}
 
 		/// <summary>
@@ -865,16 +902,18 @@ namespace Microsoft.Maui.Controls
 		}
 	}
 
-	internal class WatchAddList<T> : IList<T>
+	internal class WatchList<T> : IList<T>
 	{
-		readonly Action<List<T>> _onAdd;
-		readonly Action<T> _onRemove;
+		readonly Action<List<T>> _onCollectionChanged;
+		readonly Action<T> _onItemAdded;
+		readonly Action<T> _onItemRemoving;
 		readonly List<T> _internalList;
 
-		public WatchAddList(Action<List<T>> onAdd, Action<T> onRemove = null)
+		public WatchList(Action<List<T>> onCollectionChanged, Action<T> onItemAdded = null, Action<T> onItemRemoving = null)
 		{
-			_onAdd = onAdd;
-			_onRemove = onRemove;
+			_onCollectionChanged = onCollectionChanged;
+			_onItemAdded = onItemAdded;
+			_onItemRemoving = onItemRemoving;
 			_internalList = new List<T>();
 		}
 
@@ -891,20 +930,25 @@ namespace Microsoft.Maui.Controls
 		public void Add(T item)
 		{
 			_internalList.Add(item);
-			_onAdd(_internalList);
+			_onCollectionChanged(_internalList);
+			_onItemAdded?.Invoke(item);
 		}
 
 		public void Clear()
 		{
-			if (_onRemove != null)
+			if (_onItemRemoving != null)
 			{
 				foreach (var item in _internalList)
 				{
-					_onRemove(item);
+					_onItemRemoving(item);
 				}
 			}
 
 			_internalList.Clear();
+			if (_onItemRemoving != null)
+			{
+				_onCollectionChanged(_internalList);
+			}
 		}
 
 		public bool Contains(T item)
@@ -939,13 +983,18 @@ namespace Microsoft.Maui.Controls
 		public void Insert(int index, T item)
 		{
 			_internalList.Insert(index, item);
-			_onAdd(_internalList);
+			_onCollectionChanged(_internalList);
+			_onItemAdded?.Invoke(item);
 		}
 
 		public void RemoveAt(int index)
 		{
-			_onRemove?.Invoke(_internalList[index]);
+			_onItemRemoving?.Invoke(_internalList[index]);
 			_internalList.RemoveAt(index);
+			if (_onItemRemoving != null)
+			{
+				_onCollectionChanged(_internalList);
+			}
 		}
 
 		public T this[int index]
@@ -953,9 +1002,10 @@ namespace Microsoft.Maui.Controls
 			get => _internalList[index];
 			set
 			{
-				_onRemove?.Invoke(_internalList[index]);
+				_onItemRemoving?.Invoke(_internalList[index]);
 				_internalList[index] = value;
-				_onAdd(_internalList);
+				_onCollectionChanged(_internalList);
+				_onItemAdded?.Invoke(value);
 			}
 		}
 	}

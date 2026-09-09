@@ -66,6 +66,32 @@ namespace Microsoft.Maui.Controls.Core.UnitTests
 		}
 
 		[Fact]
+		public void StateTriggerReattachesWhenStateIsReaddedAfterAttach()
+		{
+			var label = new Label();
+			var trigger = new AdaptiveTrigger { MinWindowWidth = 300 };
+			var state = new VisualState
+			{
+				Name = "Large",
+				StateTriggers = { trigger }
+			};
+			var group = new VisualStateGroup { States = { state } };
+
+			VisualStateManager.SetVisualStateGroups(label, new VisualStateGroupList { group });
+			_ = new Window { Page = new ContentPage { Content = label } };
+
+			Assert.True(trigger.IsAttached);
+
+			group.States.Remove(state);
+
+			Assert.False(trigger.IsAttached);
+
+			group.States.Add(state);
+
+			Assert.True(trigger.IsAttached);
+		}
+
+		[Fact]
 		public void ResizingWindowPageActivatesTrigger()
 		{
 			var redBrush = new SolidColorBrush(Colors.Red);
