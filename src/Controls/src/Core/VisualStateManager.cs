@@ -481,7 +481,7 @@ namespace Microsoft.Maui.Controls
 		/// </summary>
 		public VisualStateGroup()
 		{
-			States = new WatchAddList<VisualState>(OnStatesChanged);
+			States = new WatchAddList<VisualState>(OnStatesChanged, OnStateRemoved);
 		}
 
 		/// <summary>
@@ -671,6 +671,16 @@ namespace Microsoft.Maui.Controls
 			StatesChanged?.Invoke(this, EventArgs.Empty);
 		}
 
+		void OnStateRemoved(VisualState state)
+		{
+			foreach (var trigger in state.StateTriggers)
+			{
+				trigger.SendDetached();
+			}
+
+			state.VisualStateGroup = null;
+		}
+
 		public override bool Equals(object obj) => Equals(obj as VisualStateGroup);
 
 		bool Equals(VisualStateGroup other)
@@ -858,11 +868,13 @@ namespace Microsoft.Maui.Controls
 	internal class WatchAddList<T> : IList<T>
 	{
 		readonly Action<List<T>> _onAdd;
+		readonly Action<T> _onRemove;
 		readonly List<T> _internalList;
 
-		public WatchAddList(Action<List<T>> onAdd)
+		public WatchAddList(Action<List<T>> onAdd, Action<T> onRemove = null)
 		{
 			_onAdd = onAdd;
+			_onRemove = onRemove;
 			_internalList = new List<T>();
 		}
 
@@ -884,6 +896,14 @@ namespace Microsoft.Maui.Controls
 
 		public void Clear()
 		{
+			if (_onRemove != null)
+			{
+				foreach (var item in _internalList)
+				{
+					_onRemove(item);
+				}
+			}
+
 			_internalList.Clear();
 		}
 
@@ -899,7 +919,12 @@ namespace Microsoft.Maui.Controls
 
 		public bool Remove(T item)
 		{
-			return _internalList.Remove(item);
+			var index = _internalList.IndexOf(item);
+			if (index < 0)
+				return false;
+
+			RemoveAt(index);
+			return true;
 		}
 
 		public int Count => _internalList.Count;
@@ -919,13 +944,19 @@ namespace Microsoft.Maui.Controls
 
 		public void RemoveAt(int index)
 		{
+			_onRemove?.Invoke(_internalList[index]);
 			_internalList.RemoveAt(index);
 		}
 
 		public T this[int index]
 		{
 			get => _internalList[index];
-			set => _internalList[index] = value;
+			set
+			{
+				_onRemove?.Invoke(_internalList[index]);
+				_internalList[index] = value;
+				_onAdd(_internalList);
+			}
 		}
 	}
 }
