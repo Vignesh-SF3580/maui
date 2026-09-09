@@ -303,7 +303,51 @@ namespace Microsoft.Maui.Controls
 		public VisualStateGroupList(bool isDefault)
 		{
 			IsDefault = isDefault;
-			_internalList = new WatchList<VisualStateGroup>(ValidateAndNotify);
+			_internalList = new WatchList<VisualStateGroup>(ValidateAndNotify, OnGroupAdded, OnGroupRemoving);
+		}
+
+		void OnGroupAdded(VisualStateGroup group)
+		{
+			group.StatesChanged += ValidateAndNotify;
+			group.VisualElement = VisualElement;
+
+			if (VisualElement?.Window == null)
+			{
+				return;
+			}
+
+			foreach (var state in group.States)
+			{
+				foreach (var trigger in state.StateTriggers)
+				{
+					trigger.SendAttached();
+				}
+			}
+		}
+
+		void OnGroupRemoving(VisualStateGroup group)
+		{
+			group.StatesChanged -= ValidateAndNotify;
+
+			if (group.CurrentState is { } currentState)
+			{
+				if (group.VisualElement is { } visualElement)
+				{
+					VisualStateManager.UnapplyState(visualElement, currentState, Specificity);
+				}
+
+				group.CurrentState = null;
+			}
+
+			foreach (var state in group.States)
+			{
+				foreach (var trigger in state.StateTriggers)
+				{
+					trigger.SendDetached();
+				}
+			}
+
+			group.VisualElement = null;
 		}
 
 		void ValidateAndNotify(object sender, EventArgs eventArgs)
@@ -347,7 +391,6 @@ namespace Microsoft.Maui.Controls
 				{
 					if (string.Equals(_internalList[i].Name, item.Name, StringComparison.Ordinal))
 					{
-						_internalList[i].StatesChanged -= ValidateAndNotify;
 						_internalList.Remove(_internalList[i]);
 						break;
 					}
@@ -355,18 +398,11 @@ namespace Microsoft.Maui.Controls
 			}
 
 			_internalList.Add(item);
-
-			item.StatesChanged += ValidateAndNotify;
 		}
 
 		/// <inheritdoc />
 		public void Clear()
 		{
-			foreach (var group in _internalList)
-			{
-				group.StatesChanged -= ValidateAndNotify;
-			}
-
 			_internalList.Clear();
 		}
 
@@ -390,7 +426,6 @@ namespace Microsoft.Maui.Controls
 				throw new ArgumentNullException(nameof(item));
 			}
 
-			item.StatesChanged -= ValidateAndNotify;
 			return _internalList.Remove(item);
 		}
 
@@ -414,14 +449,12 @@ namespace Microsoft.Maui.Controls
 				throw new ArgumentNullException(nameof(item));
 			}
 
-			item.StatesChanged += ValidateAndNotify;
 			_internalList.Insert(index, item);
 		}
 
 		/// <inheritdoc />
 		public void RemoveAt(int index)
 		{
-			_internalList[index].StatesChanged -= ValidateAndNotify;
 			_internalList.RemoveAt(index);
 		}
 
@@ -686,7 +719,9 @@ namespace Microsoft.Maui.Controls
 
 		void OnStateAdded(VisualState state)
 		{
-			if (VisualElement?.Window == null)
+			if (VisualElement is not { Window: not null } visualElement ||
+				VisualStateManager.GetVisualStateGroups(visualElement) is not VisualStateGroupList groups ||
+				!groups.Any(group => ReferenceEquals(group, this)))
 			{
 				return;
 			}
