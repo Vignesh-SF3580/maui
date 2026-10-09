@@ -4,8 +4,10 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Text;
 using Microsoft.Maui.Graphics;
+using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using Windows.UI.Core;
 using static Microsoft.Maui.Layouts.LayoutExtensions;
 
@@ -83,6 +85,7 @@ namespace Microsoft.Maui.Handlers
 			}
 
 			UpdateContentPanel(scrollView, handler, crossPlatformLayout);
+			UpdateContentManipulationMode(handler, scrollView);
 		}
 
 		public static void MapHorizontalScrollBarVisibility(IScrollViewHandler handler, IScrollView scrollView)
@@ -102,6 +105,18 @@ namespace Microsoft.Maui.Handlers
 					: scrollView.VerticalScrollBarVisibility;
 
 			handler.PlatformView?.UpdateScrollBarVisibility(scrollView.Orientation, scrollBarVisibility);
+			UpdateContentManipulationMode(handler, scrollView);
+		}
+
+		static void UpdateContentManipulationMode(IScrollViewHandler handler, IScrollView scrollView)
+		{
+			if (handler.PlatformView is { } scrollViewer && GetContentPanel(scrollViewer) is { } contentPanel)
+			{
+				// Reserve horizontal touch pans inside vertical scrolling content before contact registration.
+				contentPanel.ManipulationMode = scrollView.Orientation == ScrollOrientation.Vertical
+					? ManipulationModes.System | ManipulationModes.TranslateX
+					: ManipulationModes.System;
+			}
 		}
 
 		public static void MapRequestScrollTo(IScrollViewHandler handler, IScrollView scrollView, object? args)
@@ -224,7 +239,7 @@ namespace Microsoft.Maui.Handlers
 				return;
 			}
 
-			var paddingShim = new ContentPanel()
+			var paddingShim = new ScrollViewContentPanel()
 			{
 				CrossPlatformLayout = crossPlatformLayout,
 				Tag = ContentPanelTag
@@ -273,6 +288,46 @@ namespace Microsoft.Maui.Handlers
 		Size ICrossPlatformLayout.CrossPlatformArrange(Rect bounds)
 		{
 			return (VirtualView as ICrossPlatformLayout).CrossPlatformArrange(bounds);
+		}
+
+		sealed class ScrollViewContentPanel : ContentPanel
+		{
+			PointerDeviceType _pointerDeviceType;
+
+			public ScrollViewContentPanel()
+			{
+				PointerPressed += OnPointerPressed;
+				ManipulationStarting += OnManipulationStarting;
+			}
+
+			void OnPointerPressed(object sender, PointerRoutedEventArgs e)
+			{
+				_pointerDeviceType = e.Pointer.PointerDeviceType;
+			}
+
+			void OnManipulationStarting(object sender, ManipulationStartingRoutedEventArgs e)
+			{
+				if (!ReferenceEquals(e.OriginalSource, this) || _pointerDeviceType == PointerDeviceType.Touch ||
+					ManipulationMode != (ManipulationModes.System | ManipulationModes.TranslateX))
+				{
+					return;
+				}
+
+				// Non-touch pans keep the ancestor's axes and coordinate space instead of the touch-only axis.
+				for (DependencyObject? parent = Microsoft.UI.Xaml.Media.VisualTreeHelper.GetParent(this);
+					parent is not null;
+					parent = Microsoft.UI.Xaml.Media.VisualTreeHelper.GetParent(parent))
+				{
+					if (parent is UIElement element && element.ManipulationMode != ManipulationModes.System)
+					{
+						e.Mode = element.ManipulationMode;
+						e.Container = element;
+						return;
+					}
+				}
+
+				e.Mode = ManipulationModes.None;
+			}
 		}
 	}
 }
