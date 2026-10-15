@@ -280,9 +280,6 @@ namespace Microsoft.Maui.Controls.Handlers.Items
 				if (_emptyView != null && ListViewBase is IEmptyView emptyView)
 				{
 					emptyView.EmptyViewVisibility = WVisibility.Visible;
-
-					if (PlatformView.ActualWidth >= 0 && PlatformView.ActualHeight >= 0)
-						_formsEmptyView?.Arrange(new Rect(0, 0, PlatformView.ActualWidth, PlatformView.ActualHeight));
 				}
 
 				_emptyViewDisplayed = true;
@@ -304,6 +301,7 @@ namespace Microsoft.Maui.Controls.Handlers.Items
 
 			if (Element.ItemsSource == null)
 			{
+				UpdateEmptyViewVisibility();
 				return;
 			}
 
