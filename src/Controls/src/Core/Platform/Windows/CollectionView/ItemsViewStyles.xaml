@@ -86,17 +86,16 @@
                                     FooterTransitions="{TemplateBinding FooterTransitions}"
                                     Padding="{TemplateBinding Padding}">
                         <ItemsPresenter.Header>
-                            <!-- Keep EmptyView in the header's flow without interrupting item virtualization. -->
-                            <StackPanel x:Name="EmptyViewHeaderPanel">
-                                <ContentPresenter Content="{TemplateBinding Header}"
-                                                  ContentTemplate="{TemplateBinding HeaderTemplate}" />
-                                <ContentControl x:Name="EmptyViewContentControl"
-                                                Visibility="Collapsed"
-                                                HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/>
-                            </StackPanel>
+                            <ContentPresenter x:Name="HeaderContentPresenter"
+                                              Content="{TemplateBinding Header}"
+                                              ContentTemplate="{TemplateBinding HeaderTemplate}" />
                         </ItemsPresenter.Header>
                     </ItemsPresenter>
                 </ScrollViewer>
+                <ContentControl x:Name="EmptyViewContentControl"
+                                Visibility="Collapsed"
+                                HorizontalContentAlignment="Stretch"
+                                VerticalContentAlignment="Stretch" />
             </Grid>
         </Border>
     </ControlTemplate>
@@ -159,21 +158,21 @@
                             BringIntoViewOnFocusChange="{TemplateBinding ScrollViewer.BringIntoViewOnFocusChange}"
                             AutomationProperties.AccessibilityView="Raw">
                                 <ItemsPresenter HeaderTransitions="{TemplateBinding HeaderTransitions}"
-                                Footer="{TemplateBinding Footer}"
-                                FooterTemplate="{TemplateBinding FooterTemplate}"
-                                FooterTransitions="{TemplateBinding FooterTransitions}"
-                                Padding="{TemplateBinding Padding}">
+                                                Footer="{TemplateBinding Footer}"
+                                                FooterTemplate="{TemplateBinding FooterTemplate}"
+                                                FooterTransitions="{TemplateBinding FooterTransitions}"
+                                                Padding="{TemplateBinding Padding}">
                                     <ItemsPresenter.Header>
-                                        <StackPanel x:Name="EmptyViewHeaderPanel">
-                                            <ContentPresenter Content="{TemplateBinding Header}"
-                                                              ContentTemplate="{TemplateBinding HeaderTemplate}" />
-                                            <ContentControl x:Name="EmptyViewContentControl"
-                                                            Visibility="Collapsed"
-                                                            HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/>
-                                        </StackPanel>
+                                        <ContentPresenter x:Name="HeaderContentPresenter"
+                                                          Content="{TemplateBinding Header}"
+                                                          ContentTemplate="{TemplateBinding HeaderTemplate}" />
                                     </ItemsPresenter.Header>
                                 </ItemsPresenter>
                             </ScrollViewer>
+                            <ContentControl x:Name="EmptyViewContentControl"
+                                        Visibility="Collapsed"
+                                        HorizontalContentAlignment="Stretch"
+                                        VerticalContentAlignment="Stretch" />
                         </Grid>
                     </Border>
                 </ControlTemplate>

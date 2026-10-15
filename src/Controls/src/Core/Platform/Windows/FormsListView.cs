@@ -13,6 +13,7 @@ namespace Microsoft.Maui.Controls.Platform
 	internal partial class FormsListView : Microsoft.UI.Xaml.Controls.ListView, IEmptyView
 	{
 		ContentControl _emptyViewContentControl;
+		Microsoft.UI.Xaml.Controls.ContentPresenter _headerContentPresenter;
 		FrameworkElement _emptyView;
 		View _formsEmptyView;
 
@@ -67,13 +68,7 @@ namespace Microsoft.Maui.Controls.Platform
 			base.OnApplyTemplate();
 
 			_emptyViewContentControl = GetTemplateChild("EmptyViewContentControl") as ContentControl;
-
-			if (GetTemplateChild("EmptyViewHeaderPanel") is StackPanel headerPanel)
-			{
-				headerPanel.Orientation = ScrollViewer.GetVerticalScrollMode(this) == Microsoft.UI.Xaml.Controls.ScrollMode.Disabled
-					? Orientation.Horizontal
-					: Orientation.Vertical;
-			}
+			_headerContentPresenter = GetTemplateChild("HeaderContentPresenter") as Microsoft.UI.Xaml.Controls.ContentPresenter;
 
 			if (_emptyViewContentControl != null)
 			{
@@ -84,6 +79,7 @@ namespace Microsoft.Maui.Controls.Platform
 
 		protected override global::Windows.Foundation.Size ArrangeOverride(global::Windows.Foundation.Size finalSize)
 		{
+			UpdateEmptyViewMargin(finalSize);
 			var arrangedSize = base.ArrangeOverride(finalSize);
 
 			if (_emptyViewContentControl?.Visibility == WVisibility.Visible)
@@ -93,6 +89,27 @@ namespace Microsoft.Maui.Controls.Platform
 			}
 
 			return arrangedSize;
+		}
+
+		void UpdateEmptyViewMargin(global::Windows.Foundation.Size finalSize)
+		{
+			if (_emptyViewContentControl is null)
+			{
+				return;
+			}
+
+			if (ScrollViewer.GetVerticalScrollMode(this) == Microsoft.UI.Xaml.Controls.ScrollMode.Disabled)
+			{
+				var headerWidth = Header is null ? 0 : Math.Min(_headerContentPresenter?.DesiredSize.Width ?? 0, finalSize.Width);
+				_emptyViewContentControl.Margin = FlowDirection == Microsoft.UI.Xaml.FlowDirection.RightToLeft
+					? new Microsoft.UI.Xaml.Thickness(0, 0, headerWidth, 0)
+					: new Microsoft.UI.Xaml.Thickness(headerWidth, 0, 0, 0);
+			}
+			else
+			{
+				var headerHeight = Header is null ? 0 : Math.Min(_headerContentPresenter?.DesiredSize.Height ?? 0, finalSize.Height);
+				_emptyViewContentControl.Margin = new Microsoft.UI.Xaml.Thickness(0, headerHeight, 0, 0);
+			}
 		}
 
 		protected override void PrepareContainerForItemOverride(DependencyObject element, object item)
