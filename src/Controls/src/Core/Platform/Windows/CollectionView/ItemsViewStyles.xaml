@@ -86,16 +86,18 @@
                                     FooterTransitions="{TemplateBinding FooterTransitions}"
                                     Padding="{TemplateBinding Padding}">
                         <ItemsPresenter.Header>
-                            <ContentPresenter x:Name="HeaderContentPresenter"
-                                              Content="{TemplateBinding Header}"
-                                              ContentTemplate="{TemplateBinding HeaderTemplate}" />
+                            <StackPanel x:Name="EmptyViewHeaderPanel">
+                                <ContentPresenter x:Name="HeaderContentPresenter"
+                                                  Content="{TemplateBinding Header}"
+                                                  ContentTemplate="{TemplateBinding HeaderTemplate}" />
+                                <ContentControl x:Name="EmptyViewContentControl"
+                                                Visibility="Collapsed"
+                                                HorizontalContentAlignment="Stretch"
+                                                VerticalContentAlignment="Stretch" />
+                            </StackPanel>
                         </ItemsPresenter.Header>
                     </ItemsPresenter>
                 </ScrollViewer>
-                <ContentControl x:Name="EmptyViewContentControl"
-                                Visibility="Collapsed"
-                                HorizontalContentAlignment="Stretch"
-                                VerticalContentAlignment="Stretch" />
             </Grid>
         </Border>
     </ControlTemplate>
@@ -163,16 +165,18 @@
                                                 FooterTransitions="{TemplateBinding FooterTransitions}"
                                                 Padding="{TemplateBinding Padding}">
                                     <ItemsPresenter.Header>
-                                        <ContentPresenter x:Name="HeaderContentPresenter"
-                                                          Content="{TemplateBinding Header}"
-                                                          ContentTemplate="{TemplateBinding HeaderTemplate}" />
+                                        <StackPanel x:Name="EmptyViewHeaderPanel">
+                                            <ContentPresenter x:Name="HeaderContentPresenter"
+                                                              Content="{TemplateBinding Header}"
+                                                              ContentTemplate="{TemplateBinding HeaderTemplate}" />
+                                            <ContentControl x:Name="EmptyViewContentControl"
+                                                            Visibility="Collapsed"
+                                                            HorizontalContentAlignment="Stretch"
+                                                            VerticalContentAlignment="Stretch" />
+                                        </StackPanel>
                                     </ItemsPresenter.Header>
                                 </ItemsPresenter>
                             </ScrollViewer>
-                            <ContentControl x:Name="EmptyViewContentControl"
-                                        Visibility="Collapsed"
-                                        HorizontalContentAlignment="Stretch"
-                                        VerticalContentAlignment="Stretch" />
                         </Grid>
                     </Border>
                 </ControlTemplate>

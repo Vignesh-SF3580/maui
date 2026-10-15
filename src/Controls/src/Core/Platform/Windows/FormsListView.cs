@@ -13,6 +13,7 @@ namespace Microsoft.Maui.Controls.Platform
 	internal partial class FormsListView : Microsoft.UI.Xaml.Controls.ListView, IEmptyView
 	{
 		ContentControl _emptyViewContentControl;
+		StackPanel _emptyViewHeaderPanel;
 		Microsoft.UI.Xaml.Controls.ContentPresenter _headerContentPresenter;
 		FrameworkElement _emptyView;
 		View _formsEmptyView;
@@ -68,7 +69,14 @@ namespace Microsoft.Maui.Controls.Platform
 			base.OnApplyTemplate();
 
 			_emptyViewContentControl = GetTemplateChild("EmptyViewContentControl") as ContentControl;
+			_emptyViewHeaderPanel = GetTemplateChild("EmptyViewHeaderPanel") as StackPanel;
 			_headerContentPresenter = GetTemplateChild("HeaderContentPresenter") as Microsoft.UI.Xaml.Controls.ContentPresenter;
+
+			if (_emptyViewHeaderPanel != null)
+			{
+				_emptyViewHeaderPanel.Orientation = ScrollViewer.GetVerticalScrollMode(this) == Microsoft.UI.Xaml.Controls.ScrollMode.Disabled
+					? Orientation.Horizontal : Orientation.Vertical;
+			}
 
 			if (_emptyViewContentControl != null)
 			{
@@ -77,9 +85,42 @@ namespace Microsoft.Maui.Controls.Platform
 			}
 		}
 
+		protected override global::Windows.Foundation.Size MeasureOverride(global::Windows.Foundation.Size availableSize)
+		{
+			var isHorizontal = ScrollViewer.GetVerticalScrollMode(this) == Microsoft.UI.Xaml.Controls.ScrollMode.Disabled;
+			if (_emptyViewHeaderPanel != null)
+			{
+				_emptyViewHeaderPanel.Orientation = isHorizontal ? Orientation.Horizontal : Orientation.Vertical;
+			}
+
+			var measuredSize = base.MeasureOverride(availableSize);
+			if (_emptyViewContentControl?.Visibility != WVisibility.Visible)
+			{
+				return measuredSize;
+			}
+
+			var availableExtent = isHorizontal
+				? availableSize.Width - BorderThickness.Left - BorderThickness.Right - Padding.Left - Padding.Right
+				: availableSize.Height - BorderThickness.Top - BorderThickness.Bottom - Padding.Top - Padding.Bottom;
+			var headerExtent = Header is null ? 0 : (isHorizontal
+				? _headerContentPresenter?.DesiredSize.Width ?? 0
+				: _headerContentPresenter?.DesiredSize.Height ?? 0);
+			// A minimum preserves viewport fill without preventing larger content from scrolling.
+			var minimumExtent = double.IsInfinity(availableExtent) ? 0 : Math.Max(0, availableExtent - headerExtent);
+			var minWidth = isHorizontal ? minimumExtent : 0;
+			var minHeight = isHorizontal ? 0 : minimumExtent;
+			if (_emptyViewContentControl.MinWidth != minWidth || _emptyViewContentControl.MinHeight != minHeight)
+			{
+				_emptyViewContentControl.MinWidth = minWidth;
+				_emptyViewContentControl.MinHeight = minHeight;
+				return base.MeasureOverride(availableSize);
+			}
+
+			return measuredSize;
+		}
+
 		protected override global::Windows.Foundation.Size ArrangeOverride(global::Windows.Foundation.Size finalSize)
 		{
-			UpdateEmptyViewMargin(finalSize);
 			var arrangedSize = base.ArrangeOverride(finalSize);
 
 			if (_emptyViewContentControl?.Visibility == WVisibility.Visible)
@@ -89,27 +130,6 @@ namespace Microsoft.Maui.Controls.Platform
 			}
 
 			return arrangedSize;
-		}
-
-		void UpdateEmptyViewMargin(global::Windows.Foundation.Size finalSize)
-		{
-			if (_emptyViewContentControl is null)
-			{
-				return;
-			}
-
-			if (ScrollViewer.GetVerticalScrollMode(this) == Microsoft.UI.Xaml.Controls.ScrollMode.Disabled)
-			{
-				var headerWidth = Header is null ? 0 : Math.Min(_headerContentPresenter?.DesiredSize.Width ?? 0, finalSize.Width);
-				_emptyViewContentControl.Margin = FlowDirection == Microsoft.UI.Xaml.FlowDirection.RightToLeft
-					? new Microsoft.UI.Xaml.Thickness(0, 0, headerWidth, 0)
-					: new Microsoft.UI.Xaml.Thickness(headerWidth, 0, 0, 0);
-			}
-			else
-			{
-				var headerHeight = Header is null ? 0 : Math.Min(_headerContentPresenter?.DesiredSize.Height ?? 0, finalSize.Height);
-				_emptyViewContentControl.Margin = new Microsoft.UI.Xaml.Thickness(0, headerHeight, 0, 0);
-			}
 		}
 
 		protected override void PrepareContainerForItemOverride(DependencyObject element, object item)
