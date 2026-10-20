@@ -45,8 +45,10 @@ namespace Microsoft.Maui.Controls.Platform
 
 			_handler = (IPlatformViewHandler)handler;
 
-			if (_handler?.ToPlatform() is not PlatformView target)
+			if ((_handler.PlatformView is UIButton button ? button : _handler.ToPlatform()) is not PlatformView target)
+			{
 				throw new ArgumentNullException(nameof(handler.PlatformView));
+			}
 
 			_platformView = new WeakReference<PlatformView>(target);
 
@@ -559,6 +561,11 @@ namespace Microsoft.Maui.Controls.Platform
 				NumberOfTapsRequired = (uint)tapGesture.NumberOfTapsRequired,
 				ShouldRecognizeSimultaneously = ShouldRecognizeTapsTogether
 			};
+
+			if (PlatformView is UIButton)
+			{
+				result.CancelsTouchesInView = false;
+			}
 
 			// For whatever reason the secondary mask doesn't work on catalyst
 			// it only works when you have a mouse connected to an iPad
