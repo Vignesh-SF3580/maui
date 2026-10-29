@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui.Controls.Platform;
 using Microsoft.Maui.Graphics;
 using Microsoft.UI.Xaml.Controls;
@@ -111,9 +112,12 @@ namespace Microsoft.Maui.Controls
 			button.Content = null;
 
 			var source = item.IconImageSource;
-			if (source is FontImageSource fontSource && !string.IsNullOrEmpty(fontSource.FontFamily))
+			if (source is FontImageSource fontSource &&
+				!fontSource.IsEmpty &&
+				!string.IsNullOrEmpty(fontSource.FontFamily) &&
+				fontSource.RequireMauiContext(true).Services.GetRequiredService<IFontRegistrar>().GetFont(fontSource.FontFamily) is not null)
 			{
-				// Keep MAUI's custom-font rendering while using the native icon slot for icon-and-label layout.
+				// Render registered app fonts as images; keep system fonts on the native font-icon path.
 				var imageIcon = new ImageIcon();
 				button.Icon = imageIcon;
 				imageIcon.SetBinding(ImageIcon.SourceProperty, "Value");
