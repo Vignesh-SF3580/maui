@@ -111,7 +111,15 @@ namespace Microsoft.Maui.Controls
 			button.Content = null;
 
 			var source = item.IconImageSource;
-			if ((commandBar.IsDynamicOverflowEnabled && item.Order == ToolbarItemOrder.Secondary) ||
+			if (source is FontImageSource fontSource && !string.IsNullOrEmpty(fontSource.FontFamily))
+			{
+				// Keep MAUI's custom-font rendering while using the native icon slot for icon-and-label layout.
+				var imageIcon = new ImageIcon();
+				button.Icon = imageIcon;
+				imageIcon.SetBinding(ImageIcon.SourceProperty, "Value");
+				imageIcon.SetBinding(ImageIcon.DataContextProperty, nameof(ToolbarItem.IconImageSource), _imageConverter);
+			}
+			else if ((commandBar.IsDynamicOverflowEnabled && item.Order == ToolbarItemOrder.Secondary) ||
 				source is FontImageSource)
 			{
 				button.SetBinding(AppBarButton.IconProperty, nameof(ToolbarItem.IconImageSource), _iconConverter);
