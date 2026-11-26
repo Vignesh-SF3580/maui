@@ -31,22 +31,23 @@ namespace Microsoft.Maui.Layouts
 
 		public override Size ArrangeChildren(Rect bounds)
 		{
-			_gridStructure ??= new GridStructure(Grid, bounds.Width, bounds.Height);
+			var gridStructure = _gridStructure ??= new GridStructure(Grid, bounds.Width, bounds.Height);
 
-			_gridStructure.PrepareForArrange(bounds.Size);
+			gridStructure.PrepareForArrange(bounds.Size);
 
+			var nextMeasuredChild = 0;
 			foreach (var view in Grid)
 			{
-				if (view.Visibility == Visibility.Collapsed)
+				if (!gridStructure.ShouldArrangeChild(view, ref nextMeasuredChild))
 				{
 					continue;
 				}
 
-				var cell = _gridStructure.GetCellBoundsFor(view, bounds.Left, bounds.Top);
+				var cell = gridStructure.GetCellBoundsFor(view, bounds.Left, bounds.Top);
 				view.Arrange(cell);
 			}
 
-			var actual = new Size(_gridStructure.MeasuredGridWidth(), _gridStructure.MeasuredGridHeight());
+			var actual = new Size(gridStructure.MeasuredGridWidth(), gridStructure.MeasuredGridHeight());
 
 			return actual.AdjustForFill(bounds, Grid);
 		}
@@ -245,6 +246,21 @@ namespace Microsoft.Maui.Layouts
 					// We have enough information to go ahead and work out the sizes of the * rows
 					ResolveStarRows(_gridHeightConstraint);
 				}
+			}
+
+			public bool ShouldArrangeChild(IView view, ref int nextMeasuredChild)
+			{
+				// Check the next measured child before searching the full list.
+				if (nextMeasuredChild < _childrenToLayOut.Length &&
+					ReferenceEquals(view, _childrenToLayOut[nextMeasuredChild]))
+				{
+					nextMeasuredChild++;
+					return view.Visibility != Visibility.Collapsed;
+				}
+
+				// A child may have moved or become visible since measurement.
+				// Only arrange it if it was included in this measure pass.
+				return view.Visibility != Visibility.Collapsed && Array.IndexOf(_childrenToLayOut, view) >= 0;
 			}
 
 			public Rect GetCellBoundsFor(IView view, double xOffset, double yOffset)

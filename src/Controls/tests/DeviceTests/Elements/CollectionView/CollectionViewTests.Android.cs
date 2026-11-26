@@ -8,6 +8,7 @@ using AndroidX.Core.View;
 using AndroidX.RecyclerView.Widget;
 using Microsoft.Maui.Controls;
 using Microsoft.Maui.Controls.Handlers.Items;
+using Microsoft.Maui.Controls.Shapes;
 using Microsoft.Maui.Graphics;
 using Microsoft.Maui.Handlers;
 using Microsoft.Maui.Hosting;
@@ -22,6 +23,137 @@ namespace Microsoft.Maui.DeviceTests
 {
 	public partial class CollectionViewTests : ControlsHandlerTestBase
 	{
+		[Fact]
+		public async Task ScrollOverlayDoesNotReceiveZeroSizeWhenRevealed()
+		{
+			EnsureHandlerCreated(builder => builder.ConfigureMauiHandlers(handlers =>
+			{
+				RegisterCommonHandlers(handlers);
+				SetupShellHandlers(handlers);
+				handlers.AddHandler<CollectionView, CollectionViewHandler>();
+				handlers.AddHandler<ContentView, ContentViewHandler>();
+				handlers.AddHandler<Border, BorderHandler>();
+				handlers.AddHandler<Rectangle, ShapeViewHandler>();
+			}));
+
+			static Rectangle Divider() => new() { HeightRequest = 2, BackgroundColor = Colors.Black };
+
+			var people = Enumerable.Range(0, 15).Select(index => $"Person {index + 1}").ToArray();
+
+			// The zero allocation is intermittent, so recreate Shell and the list for each launch.
+			for (var attempt = 1; attempt <= 5; attempt++)
+			{
+				var overlay = new ScrollOverlaySizeProbe();
+				var collectionView = new CollectionView
+				{
+					Margin = 2,
+					Header = Divider(),
+					ItemsSource = people,
+					ItemTemplate = new DataTemplate(() =>
+					{
+						var firstName = new Label { FontSize = 36 };
+						firstName.SetBinding(Label.TextProperty, new Binding("."));
+						var names = new Grid
+						{
+							ColumnDefinitions = { new(GridLength.Auto), new(GridLength.Auto) },
+							ColumnSpacing = 5,
+							Margin = new Thickness(10, 0, 0, 0),
+							VerticalOptions = LayoutOptions.Center,
+						};
+						names.Add(firstName);
+						names.Add(new Label { Text = "Name", FontSize = 36 }, column: 1);
+						return new VerticalStackLayout { HeightRequest = 60, Children = { names, Divider() } };
+					}),
+				};
+				int lastVisibleItem = -1;
+				collectionView.Scrolled += (_, args) =>
+				{
+					lastVisibleItem = args.LastVisibleItemIndex;
+					overlay.IsVisible = lastVisibleItem > 0 && lastVisibleItem < people.Length - 1;
+				};
+
+				var layout = new Grid
+				{
+					RowDefinitions = { new(GridLength.Auto), new(GridLength.Auto), new(GridLength.Star) },
+					Padding = new Thickness(30, 0),
+					RowSpacing = 5,
+				};
+				layout.Add(collectionView, row: 2);
+				layout.Add(overlay, row: 2);
+				var shell = new Shell
+				{
+					Items =
+					{
+						new ShellContent
+						{
+							Title = "Home",
+							ContentTemplate = new DataTemplate(() => new ContentPage { Content = layout }),
+						},
+					},
+				};
+
+				await CreateHandlerAndAddToWindow(shell, async () =>
+				{
+					var outcome = await Task.WhenAny(overlay.FirstVisibleAllocation.Task, Task.Delay(5000));
+					Assert.True(outcome == overlay.FirstVisibleAllocation.Task,
+						$"Attempt {attempt}: the overlay did not receive a visible allocation (last visible item: {lastVisibleItem}).");
+					var size = await overlay.FirstVisibleAllocation.Task;
+					Assert.True(size.Width > 0 && size.Height > 0,
+						$"Attempt {attempt}: the visible scroll overlay received {size.Width} x {size.Height} (last visible item: {lastVisibleItem}).");
+				});
+			}
+		}
+
+		sealed class ScrollOverlaySizeProbe : ContentView
+		{
+			readonly Border _border;
+			readonly Brush _background = new RadialGradientBrush
+			{
+				GradientStops =
+				{
+					new GradientStop(Colors.White, 0.4f),
+					new GradientStop(Colors.Transparent, 1f),
+				},
+			};
+
+			public TaskCompletionSource<Size> FirstVisibleAllocation { get; } =
+				new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+			public ScrollOverlaySizeProbe()
+			{
+				IsVisible = false;
+				HorizontalOptions = LayoutOptions.Center;
+				VerticalOptions = LayoutOptions.End;
+				_border = new Border
+				{
+					Background = _background,
+					HorizontalOptions = LayoutOptions.Center,
+					VerticalOptions = LayoutOptions.Start,
+					StrokeShape = new Ellipse(),
+					StrokeThickness = 0,
+					Padding = 20,
+					Content = new Label
+					{
+						Text = "X",
+						FontSize = 70,
+						HorizontalOptions = LayoutOptions.Center,
+						VerticalOptions = LayoutOptions.Center,
+					},
+				};
+				Content = _border;
+			}
+
+			protected override void OnSizeAllocated(double width, double height)
+			{
+				base.OnSizeAllocated(width, height);
+				if (IsVisible)
+					FirstVisibleAllocation.TrySetResult(new Size(width, height));
+
+				// Keep the Sandbox workaround so the test reports the allocation, not a gradient crash.
+				_border.Background = width <= 0 || height <= 0 ? Brush.Transparent : _background;
+			}
+		}
+
 		[Theory]
 		[InlineData(ItemsLayoutOrientation.Vertical, ItemSizingStrategy.MeasureAllItems)]
 		[InlineData(ItemsLayoutOrientation.Vertical, ItemSizingStrategy.MeasureFirstItem)]

@@ -1158,6 +1158,33 @@ namespace Microsoft.Maui.UnitTests.Layouts
 		}
 
 		[Fact]
+		public void DefersChildRevealedDuringArrangeUntilNextMeasure()
+		{
+			var firstChild = CreateTestView(new Size(100, 100));
+			var overlay = CreateTestView(new Size(40, 40));
+			var trailingChild = CreateTestView(new Size(20, 20));
+			var overlayVisibility = Visibility.Collapsed;
+			overlay.Visibility.Returns(_ => overlayVisibility);
+			firstChild.When(view => view.Arrange(Arg.Any<Rect>()))
+				.Do(_ => overlayVisibility = Visibility.Visible);
+
+			var grid = CreateGridLayout(children: new List<IView> { firstChild, overlay, trailingChild });
+			var manager = new GridLayoutManager(grid);
+			var bounds = new Rect(0, 0, 300, 300);
+			manager.Measure(bounds.Width, bounds.Height);
+			manager.ArrangeChildren(bounds);
+
+			overlay.DidNotReceive().Arrange(Arg.Any<Rect>());
+			trailingChild.Received(1).Arrange(bounds);
+
+			manager.Measure(bounds.Width, bounds.Height);
+			manager.ArrangeChildren(bounds);
+
+			overlay.Received().Measure(Arg.Any<double>(), Arg.Any<double>());
+			overlay.Received(1).Arrange(bounds);
+		}
+
+		[Fact]
 		public void DoesNotIgnoreHiddenViews()
 		{
 			var view = LayoutTestHelpers.CreateTestView(new Size(100, 100));
